@@ -1,45 +1,36 @@
-// Importaciones necesarias de React y bibliotecas externas
-import React, { useState } from "react"; // Importa React y el hook de estado
-import { Container, Box, Button, TextField, Typography, Alert } from "@mui/material"; // Componentes de Material UI
-import { motion, AnimatePresence } from "framer-motion"; // Componentes para animaciones
-import { useNavigate } from "react-router-dom"; // Hook para navegación programática
-import axios from "axios"; // Cliente HTTP para peticiones al servidor
+import React, { useState } from "react";
+import { Container, Box, Button, TextField, Typography, Alert } from "@mui/material";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-// Componente principal que maneja la página de login/registro
 const LoginRegisterPage = () => {
-  // Estado para controlar qué formulario mostrar (login o registro)
   const [isLogin, setIsLogin] = useState(true);
-  // Estado para manejar mensajes de error
   const [error, setError] = useState("");
-  // Hook de navegación
   const navigate = useNavigate();
 
-  // Función para alternar entre formularios de login y registro
   const toggleForm = () => {
-    setError(""); // Limpia cualquier error previo
-    setIsLogin(!isLogin); // Cambia el estado del formulario
+    setError("");
+    setIsLogin(!isLogin);
   };
 
   return (
-    // Contenedor principal que ocupa toda la altura de la ventana
     <Container
       maxWidth={false}
       disableGutters
       sx={{
-        minHeight: "100vh", // Altura mínima de toda la ventana
+        minHeight: "100vh",
         display: "flex",
-        alignItems: "center", // Centra verticalmente
-        justifyContent: "center", // Centra horizontalmente
+        alignItems: "center",
+        justifyContent: "center",
         bgcolor: "#FFF",
       }}
     >
-      {/* Caja contenedora principal del formulario e imagen */}
       <Box sx={{
         width: "100%",
-        maxWidth: "1200px", // Ancho máximo del contenedor
-        m: 2, // Margen
+        maxWidth: "1200px",
+        m: 2,
         display: "flex",
-        // Responsivo: columna en móvil, fila en desktop
         flexDirection: { xs: "column", md: "row" },
         gap: 4,
         bgcolor: "white",
@@ -47,23 +38,17 @@ const LoginRegisterPage = () => {
         overflow: "hidden",
         boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
       }}>
-        {/* Sección izquierda - Imagen decorativa */}
         <Box sx={{
-          flex: { xs: "1", md: "1.5" }, // Proporción de espacio
+          flex: { xs: "1", md: "1.5" },
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           overflow: "hidden",
-          // Altura mínima responsiva
           minHeight: { xs: "200px", md: "600px" },
         }}>
-          {/* Imagen con animación de entrada */}
           <motion.img
-            // Configuración de la animación inicial
             initial={{ scale: 0.8, opacity: 0 }}
-            // Estado final de la animación
             animate={{ scale: 1, opacity: 1 }}
-            // Duración de la animación
             transition={{ duration: 0.5 }}
             src="https://i.pinimg.com/736x/cd/5c/6f/cd5c6f38b0d24fa2f279ff53965980e4.jpg"
             alt="Login illustration"
@@ -76,17 +61,15 @@ const LoginRegisterPage = () => {
           />
         </Box>
 
-        {/* Sección derecha - Formulario */}
         <Box sx={{
           flex: 1,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          p: 4, // Padding
-          maxWidth: { xs: "100%", md: "450px" }, // Ancho máximo responsivo
+          p: 4,
+          maxWidth: { xs: "100%", md: "450px" },
         }}>
-          {/* Título dinámico según el formulario activo */}
           <Typography variant="h4" component="h1" gutterBottom sx={{
             fontWeight: "bold",
             mb: 4,
@@ -95,26 +78,21 @@ const LoginRegisterPage = () => {
             {isLogin ? "Welcome Back" : "Create Account"}
           </Typography>
 
-          {/* Muestra alerta de error si existe */}
           {error && (
             <Alert severity="error" sx={{ mb: 2, width: "100%" }}>
               {error}
             </Alert>
           )}
 
-          {/* Contenedor de animaciones para transición entre formularios */}
           <AnimatePresence mode="wait">
             <motion.div
-              // Key única para la animación
               key={isLogin ? "login" : "register"}
-              // Configuración de animaciones
               initial={{ opacity: 0, x: isLogin ? -100 : 100 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: isLogin ? 100 : -100 }}
               transition={{ duration: 0.3 }}
               style={{ width: "100%" }}
             >
-              {/* Renderiza condicionalmente el formulario correspondiente */}
               {isLogin ? (
                 <Login setError={setError} navigate={navigate} />
               ) : (
@@ -123,7 +101,6 @@ const LoginRegisterPage = () => {
             </motion.div>
           </AnimatePresence>
 
-          {/* Sección para cambiar entre formularios */}
           <Box sx={{ mt: 2, textAlign: "center" }}>
             <Typography variant="body2" sx={{ mb: 1 }}>
               {isLogin ? "Don't have an account?" : "Already have an account?"}
@@ -141,38 +118,50 @@ const LoginRegisterPage = () => {
   );
 };
 
-// Componente de formulario de Login
 const Login = ({ setError, navigate }) => {
-  // Estado para los datos del formulario
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+  const [errors, setErrors] = useState({});
 
-  // Manejador de cambios en los campos del formulario
+  const validate = () => {
+    const newErrors = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!emailRegex.test(formData.email)) {
+      newErrors.email = "Invalid email address";
+    }
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value, // Actualiza el campo específico
+      [e.target.name]: e.target.value,
     });
   };
 
-  // Manejador del envío del formulario
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Previene el comportamiento por defecto del formulario
+    e.preventDefault();
+    if (!validate()) {
+      return;
+    }
+    
     try {
-      // Realiza la petición de login al servidor
       const response = await axios.post('http://localhost:8080/auth/login', formData);
       
       if (response.data.success) {
-        // Extrae token y datos del usuario
         const { token, user } = response.data.data;
-        // Guarda datos en localStorage
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
-        // Navega a la página principal
         navigate('/');
-        window.location.reload(); // Recarga para actualizar el estado global
+        window.location.reload();
       }
     } catch (error) {
       setError(error.response?.data?.message || "Error during login");
@@ -180,9 +169,7 @@ const Login = ({ setError, navigate }) => {
   };
 
   return (
-    // Formulario de login
     <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%" }}>
-      {/* Campo de email */}
       <TextField
         margin="normal"
         required
@@ -194,9 +181,10 @@ const Login = ({ setError, navigate }) => {
         autoFocus
         value={formData.email}
         onChange={handleChange}
+        error={!!errors.email}
+        helperText={errors.email}
         sx={{ mb: 2 }}
       />
-      {/* Campo de contraseña */}
       <TextField
         margin="normal"
         required
@@ -208,9 +196,10 @@ const Login = ({ setError, navigate }) => {
         autoComplete="current-password"
         value={formData.password}
         onChange={handleChange}
+        error={!!errors.password}
+        helperText={errors.password}
         sx={{ mb: 3 }}
       />
-      {/* Botón de submit */}
       <Button
         type="submit"
         fullWidth
@@ -230,9 +219,7 @@ const Login = ({ setError, navigate }) => {
   );
 };
 
-// Componente de formulario de Registro
 const Register = ({ setError, navigate }) => {
-  // Estado para los datos del formulario incluyendo imagen de perfil
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -240,13 +227,41 @@ const Register = ({ setError, navigate }) => {
     password: "",
     confirmPassword: "",
     birthDate: "",
-    profileImage: null, // Para almacenar el archivo de imagen
+    profileImage: null,
   });
   
-  // Estado separado para la URL de previsualización de la imagen
   const [imagePreview, setImagePreview] = useState(null);
+  const [errors, setErrors] = useState({});
 
-  // Manejador de cambios en campos de texto
+  const validate = () => {
+    const newErrors = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+    const age = new Date().getFullYear() - new Date(formData.birthDate).getFullYear();
+
+    if (!emailRegex.test(formData.email)) {
+      newErrors.email = "Invalid email address";
+    }
+    if (formData.firstName.length < 2) {
+      newErrors.firstName = "First name must be at least 2 characters";
+    }
+    if (formData.lastName.length < 2) {
+      newErrors.lastName = "Last name must be at least 2 characters";
+    }
+    if (age < 18 || age > 120) {
+      newErrors.birthDate = "Age must be between 18 and 120 years";
+    }
+    if (!passwordRegex.test(formData.password)) {
+      newErrors.password = "Password must be at least 6 characters with at least one letter, one number and one special character";
+    }
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -254,29 +269,24 @@ const Register = ({ setError, navigate }) => {
     });
   };
 
-  // Manejador específico para el cambio de imagen
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validación del tipo de archivo
       if (!file.type.startsWith('image/')) {
         setError("Please upload an image file");
         return;
       }
       
-      // Validación del tamaño del archivo
       if (file.size > 5 * 1024 * 1024) {
         setError("Image size should be less than 5MB");
         return;
       }
 
-      // Actualiza el estado con el archivo
       setFormData({
         ...formData,
         profileImage: file
       });
 
-      // Crea URL de previsualización
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -285,27 +295,14 @@ const Register = ({ setError, navigate }) => {
     }
   };
 
-  // Manejador del envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validación de contraseñas
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords don't match");
-      return;
-    }
-
-    // Validación de edad
-    const birthDate = new Date(formData.birthDate);
-    const today = new Date();
-    const age = today.getFullYear() - birthDate.getFullYear();
-    if (age < 18) {
-      setError("You must be at least 18 years old");
+    if (!validate()) {
       return;
     }
 
     try {
-      // Prepara los datos para enviar incluyendo la imagen
       const formDataToSend = new FormData();
       formDataToSend.append('firstName', formData.firstName);
       formDataToSend.append('lastName', formData.lastName);
@@ -316,10 +313,9 @@ const Register = ({ setError, navigate }) => {
         formDataToSend.append('profileImage', formData.profileImage);
       }
 
-      // Realiza la petición de registro
       const response = await axios.post('http://localhost:8080/auth/register', formDataToSend, {
         headers: {
-          'Content-Type': 'multipart/form-data', // Necesario para enviar archivos
+          'Content-Type': 'multipart/form-data',
         },
       });
       
@@ -336,11 +332,8 @@ const Register = ({ setError, navigate }) => {
   };
 
   return (
-    // Formulario de registro
     <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%" }}>
-      {/* Sección de previsualización y carga de imagen */}
       <Box sx={{ mb: 3, textAlign: 'center' }}>
-        {/* Muestra la previsualización si existe */}
         {imagePreview && (
           <Box
             sx={{
@@ -363,7 +356,6 @@ const Register = ({ setError, navigate }) => {
             />
           </Box>
         )}
-        {/* Botón para subir imagen */}
         <Button
           component="label"
           variant="outlined"
@@ -379,14 +371,12 @@ const Register = ({ setError, navigate }) => {
         </Button>
       </Box>
 
-      {/* Grid para nombre y apellido */}
       <Box sx={{
         display: "grid",
         gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
         gap: 2,
         mb: 2,
       }}>
-        {/* Campo de nombre */}
         <TextField
           required
           fullWidth
@@ -396,9 +386,10 @@ const Register = ({ setError, navigate }) => {
           autoComplete="given-name"
           value={formData.firstName}
           onChange={handleChange}
+          error={!!errors.firstName}
+          helperText={errors.firstName}
           autoFocus
         />
-        {/* Campo de apellido */}
         <TextField
           required
           fullWidth
@@ -408,10 +399,11 @@ const Register = ({ setError, navigate }) => {
           autoComplete="family-name"
           value={formData.lastName}
           onChange={handleChange}
+          error={!!errors.lastName}
+          helperText={errors.lastName}
         />
       </Box>
 
-      {/* Campos adicionales del formulario */}
       <TextField
         required
         fullWidth
@@ -421,6 +413,8 @@ const Register = ({ setError, navigate }) => {
         autoComplete="email"
         value={formData.email}
         onChange={handleChange}
+        error={!!errors.email}
+        helperText={errors.email}
         sx={{ mb: 2 }}
       />
       <TextField
@@ -433,6 +427,8 @@ const Register = ({ setError, navigate }) => {
         autoComplete="new-password"
         value={formData.password}
         onChange={handleChange}
+        error={!!errors.password}
+        helperText={errors.password}
         sx={{ mb: 2 }}
       />
       <TextField
@@ -445,6 +441,8 @@ const Register = ({ setError, navigate }) => {
         autoComplete="new-password"
         value={formData.confirmPassword}
         onChange={handleChange}
+        error={!!errors.confirmPassword}
+        helperText={errors.confirmPassword}
         sx={{ mb: 2 }}
       />
       <TextField
@@ -459,20 +457,21 @@ const Register = ({ setError, navigate }) => {
         InputLabelProps={{
           shrink: true,
         }}
+        error={!!errors.birthDate}
+        helperText={errors.birthDate}
         sx={{ mb: 3 }}
       />
-      {/* Botón de envío */}
       <Button
         type="submit"
         fullWidth
         variant="contained"
         size="large"
         sx={{
-          mt: 2, // Margen superior
-          py: 1.5, // Padding vertical
-          textTransform: "none", // Evita que el texto se convierta en mayúsculas
-          fontWeight: "bold", // Texto en negrita
-          bgcolor: "#4E9DE0", // Color de fondo personalizado
+          mt: 2,
+          py: 1.5,
+          textTransform: "none",
+          fontWeight: "bold",
+          bgcolor: "#4E9DE0",
         }}
       >
         Create Account
@@ -481,5 +480,4 @@ const Register = ({ setError, navigate }) => {
   );
 };
 
-// Exporta el componente principal para su uso en otras partes de la aplicación
 export default LoginRegisterPage;
