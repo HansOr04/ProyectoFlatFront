@@ -1,27 +1,110 @@
-// components/PropertyCard.jsx
 import React from 'react';
+import { styled } from '@mui/material/styles';
 import {
   Card,
-  CardContent,
   CardMedia,
   Typography,
   Box,
   IconButton,
-  Tooltip,
   Chip,
   Button,
-  Divider
+  Stack,
 } from '@mui/material';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import SquareFootIcon from '@mui/icons-material/SquareFoot';
-import AcUnitIcon from '@mui/icons-material/AcUnit';
-import BusinessIcon from '@mui/icons-material/Business';
-import DateRangeIcon from '@mui/icons-material/DateRange';
+import {
+  Favorite as FavoriteIcon,
+  FavoriteBorder as FavoriteBorderIcon,
+  LocationOn as LocationOnIcon,
+  CalendarToday as CalendarTodayIcon,
+  SquareFoot as SquareFootIcon,
+  AcUnit as AcUnitIcon,
+  Business as BusinessIcon,
+  Update as UpdateIcon,
+  EventAvailable as EventAvailableIcon,
+  Photo as PhotoIcon,
+  Home as HomeIcon,
+  ArrowForward as ArrowForwardIcon
+} from '@mui/icons-material';
 
-const PropertyCard = ({ flat, isFavorite, onToggleFavorite }) => {
+// Estilos personalizados
+const StyledCard = styled(Card)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'row',
+  borderRadius: '16px',
+  overflow: 'hidden',
+  transition: 'all 0.3s ease',
+  backgroundColor: '#ffffff',
+  border: '1px solid rgba(0, 0, 0, 0.08)',
+  height: '220px',
+  '&:hover': {
+    transform: 'translateY(-8px)',
+    boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)',
+  }
+}));
+
+const StyledCardMedia = styled(CardMedia)(({ theme }) => ({
+  width: '300px',
+  height: '220px',
+  objectFit: 'cover',
+  transition: 'transform 0.3s ease',
+  position: 'relative',
+  '&:hover': {
+    transform: 'scale(1.05)'
+  }
+}));
+
+const ImageCount = styled(Box)(({ theme }) => ({
+  position: 'absolute',
+  bottom: theme.spacing(1),
+  right: theme.spacing(1),
+  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  color: 'white',
+  padding: '4px 8px',
+  borderRadius: '12px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  fontSize: '0.75rem'
+}));
+
+const ContentWrapper = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  flex: 1,
+  padding: theme.spacing(2),
+  position: 'relative'
+}));
+
+const InfoChip = styled(Chip)(({ theme }) => ({
+  backgroundColor: '#f0f7f7',
+  '& .MuiChip-icon': {
+    color: '#17A5AA',
+    fontSize: '1rem'
+  },
+  height: '24px',
+  '& .MuiChip-label': {
+    fontSize: '0.75rem',
+    padding: '0 8px'
+  }
+}));
+
+const StyledButton = styled(Button)(({ theme }) => ({
+  backgroundColor: '#17A5AA',
+  color: 'white',
+  '&:hover': {
+    backgroundColor: '#148f94'
+  },
+  fontSize: '0.875rem',
+  textTransform: 'none'
+}));
+
+const PropertyCard = ({ flat, isFavorite, onToggleFavorite, onViewDetails }) => {
+  // Función para obtener la imagen principal
+  const getMainImage = () => {
+    const mainImage = flat.images?.find(img => img.isMainImage);
+    return mainImage?.url || flat.images?.[0]?.url || 'https://via.placeholder.com/300x220';
+  };
+
+  // Función para formatear precios
   const formatPrice = (price) => {
     return price.toLocaleString('es-EC', {
       style: 'currency',
@@ -30,139 +113,123 @@ const PropertyCard = ({ flat, isFavorite, onToggleFavorite }) => {
     });
   };
 
-  const formatDate = (date) => {
-    return new Date(date).toLocaleDateString('es-EC', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
+  // Función para formatear fechas
+  const formatSimpleDate = (date) => {
+    return new Date(date).toISOString().split('T')[0];
   };
 
   return (
-    <Card sx={{ 
-      display: 'flex', 
-      flexDirection: { xs: 'column', md: 'row' }, 
-      maxHeight: { md: 250 },
-      transition: 'all 0.3s ease',
-      '&:hover': {
-        transform: 'translateY(-4px)',
-        boxShadow: 3
-      }
-    }}>
-      <CardMedia
-        component="img"
-        sx={{ 
-          width: { xs: '100%', md: 350 },
-          height: { xs: 200, md: '100%' },
-          objectFit: 'cover'
-        }}
-        image={flat.images?.[0]?.url || 'https://via.placeholder.com/350x250'}
-        alt={`Propiedad en ${flat.city}`}
-      />
-      <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, p: 2 }}>
-        <CardContent sx={{ flex: '1 0 auto', position: 'relative', p: 0 }}>
-          {/* Botón de favorito */}
-          <IconButton 
-            onClick={() => onToggleFavorite(flat._id)}
-            sx={{ 
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              '&:hover': { 
-                bgcolor: 'rgba(255, 0, 0, 0.1)' 
-              }
-            }}
-          >
-            {isFavorite ? (
-              <FavoriteIcon sx={{ color: 'red' }} />
-            ) : (
-              <FavoriteBorderIcon />
-            )}
-          </IconButton>
-
-          {/* Precio y fecha de creación */}
-          <Box sx={{ mb: 2 }}>
-            <Typography variant="h5" component="div" sx={{ fontWeight: 'bold', color: '#17A5AA' }}>
-              {formatPrice(flat.rentPrice)}/mes
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Publicado el {formatDate(flat.atCreated)}
-            </Typography>
-          </Box>
-
-          {/* Ubicación */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <LocationOnIcon sx={{ mr: 1, color: 'text.secondary' }} />
-            <Typography variant="body1">
-              {flat.streetName} {flat.streetNumber}, {flat.city}
-            </Typography>
-          </Box>
-
-          {/* Características principales */}
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-            <Tooltip title="Área">
-              <Chip
-                icon={<SquareFootIcon />}
-                label={`${flat.areaSize} m²`}
-                variant="outlined"
-                size="small"
-              />
-            </Tooltip>
-            
-            <Tooltip title="Año de construcción">
-              <Chip
-                icon={<BusinessIcon />}
-                label={`Construido ${flat.yearBuilt}`}
-                variant="outlined"
-                size="small"
-              />
-            </Tooltip>
-            
-            {flat.hasAC && (
-              <Tooltip title="Aire acondicionado">
-                <Chip
-                  icon={<AcUnitIcon />}
-                  label="A/C"
-                  variant="outlined"
-                  size="small"
-                />
-              </Tooltip>
-            )}
-            
-            <Tooltip title="Disponible desde">
-              <Chip
-                icon={<CalendarTodayIcon />}
-                label={formatDate(flat.dateAvailable)}
-                variant="outlined"
-                size="small"
-              />
-            </Tooltip>
-          </Box>
-
-          {/* Fecha de última actualización */}
-          <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-            Última actualización: {formatDate(flat.atUpdated)}
-          </Typography>
-
-          {/* Botón de acción */}
-          <Button 
-            variant="contained" 
-            sx={{ 
-              bgcolor: '#17A5AA',
-              '&:hover': { 
-                bgcolor: '#148f94',
-                transform: 'translateY(-2px)'
-              },
-              transition: 'all 0.3s ease',
-              textTransform: 'none',
-              fontWeight: 500
-            }}
-          >
-            Ver detalles
-          </Button>
-        </CardContent>
+    <StyledCard>
+      <Box sx={{ position: 'relative', width: 300 }}>
+        <StyledCardMedia
+          component="img"
+          image={getMainImage()}
+          alt={`Propiedad en ${flat.city}`}
+        />
+        <ImageCount>
+          <PhotoIcon sx={{ fontSize: '1rem' }} />
+          {flat.images?.length || 0} fotos
+        </ImageCount>
       </Box>
-    </Card>
+
+      <ContentWrapper>
+        {/* Header Section */}
+        <Box sx={{ mb: 1.5 }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
+            <HomeIcon sx={{ color: '#17A5AA', fontSize: '1.2rem' }} />
+            <Typography variant="h6" sx={{ color: '#17A5AA', fontWeight: 600 }}>
+              {flat.streetName} {flat.streetNumber}
+            </Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <LocationOnIcon sx={{ color: '#666', fontSize: '1rem' }} />
+            <Typography variant="body2" color="text.secondary">
+              {flat.city}
+            </Typography>
+          </Stack>
+        </Box>
+
+        {/* Info Chips */}
+        <Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
+          <InfoChip
+            icon={<SquareFootIcon />}
+            label={`${flat.areaSize}m²`}
+            size="small"
+          />
+          <InfoChip
+            icon={<BusinessIcon />}
+            label={`${flat.yearBuilt}`}
+            size="small"
+          />
+          {flat.hasAC && (
+            <InfoChip
+              icon={<AcUnitIcon />}
+              label="A/C"
+              size="small"
+            />
+          )}
+          <InfoChip
+            icon={<EventAvailableIcon />}
+            label={`Disponible ${formatSimpleDate(flat.dateAvailable)}`}
+            size="small"
+          />
+        </Stack>
+
+        {/* Update Info */}
+        <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <UpdateIcon sx={{ color: '#666', fontSize: '0.875rem' }} />
+            <Typography variant="caption" color="text.secondary">
+              Actualizado: {formatSimpleDate(flat.atUpdated)}
+            </Typography>
+          </Stack>
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <CalendarTodayIcon sx={{ color: '#666', fontSize: '0.875rem' }} />
+            <Typography variant="caption" color="text.secondary">
+              Publicado: {formatSimpleDate(flat.atCreated)}
+            </Typography>
+          </Stack>
+        </Stack>
+
+        {/* Price and Actions Section */}
+        <Box sx={{ mt: 'auto', pt: 1 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-end">
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: '#17A5AA' }}>
+                {formatPrice(flat.rentPrice)}
+                <Typography component="span" variant="caption" sx={{ ml: 0.5 }}>
+                  /mes
+                </Typography>
+              </Typography>
+            </Box>
+            <Stack direction="row" spacing={1}>
+              <IconButton
+                size="small"
+                onClick={() => onToggleFavorite(flat._id)}
+                sx={{
+                  bgcolor: 'white',
+                  boxShadow: 1,
+                  '&:hover': { bgcolor: '#fff5f5' }
+                }}
+              >
+                {isFavorite ? (
+                  <FavoriteIcon sx={{ color: '#ff4d4d' }} />
+                ) : (
+                  <FavoriteBorderIcon sx={{ color: '#666' }} />
+                )}
+              </IconButton>
+              <StyledButton
+                variant="contained"
+                endIcon={<ArrowForwardIcon />}
+                onClick={() => onViewDetails(flat._id)}
+              >
+                Ver detalles
+              </StyledButton>
+            </Stack>
+          </Stack>
+        </Box>
+      </ContentWrapper>
+    </StyledCard>
   );
 };
 
