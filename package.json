@@ -10,14 +10,38 @@
     "preview": "vite preview"
   },
   "dependencies": {
+<<<<<<< HEAD
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
-    "@fontsource/roboto": "^5.1.0",
     "@mui/icons-material": "^6.1.7",
     "@mui/material": "^6.1.7",
+    "axios": "^1.7.7",
+=======
+    "@emotion/react": "^11.13.5",
+    "@emotion/styled": "^11.13.5",
+    "@fontsource/roboto": "^5.1.0",
+    "@mui/icons-material": "^6.1.8",
+    "@mui/material": "^6.1.8",
+    "@mui/x-date-pickers": "^7.22.3",
+    "axios": "^1.7.7",
+    "date-fns": "^4.1.0",
+    "firebase": "^11.0.2",
+>>>>>>> origin/feature/homepage
     "flatfront": "file:",
+    "formik": "^2.4.6",
+    "framer-motion": "^11.11.17",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+<<<<<<< HEAD
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "styled-components": "^6.1.13"
+=======
+    "react-datepicker": "^7.5.0",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.0.1",
+    "styled-components": "^6.1.13",
+    "yup": "^1.4.0"
+>>>>>>> origin/feature/homepage
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
