@@ -6,7 +6,6 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-
 import axios from 'axios';
 import FiltersSidebar from '../components/filters/FiltersSidebar.jsx';
 import PropertyCard from '../components/common/PropertyCard.jsx';
@@ -31,17 +30,24 @@ const AllFlats = () => {
   const [availableFrom, setAvailableFrom] = useState("");
   const [ratingFilter, setRatingFilter] = useState(0);
 
-  // Lista de amenities disponibles
+  // Lista actualizada de amenities disponibles
   const availableAmenities = [
-    "Gimnasio",
-    "Piscina",
-    "Seguridad 24/7",
-    "Parqueadero",
-    "Área social",
-    "Vista al río",
-    "Terraza",
-    "Jardín",
-    "Bodega"
+    { key: 'wifi', label: 'WiFi' },
+    { key: 'tv', label: 'TV' },
+    { key: 'kitchen', label: 'Cocina' },
+    { key: 'washer', label: 'Lavadora' },
+    { key: 'airConditioning', label: 'Aire acondicionado' },
+    { key: 'heating', label: 'Calefacción' },
+    { key: 'workspace', label: 'Área de trabajo' },
+    { key: 'pool', label: 'Piscina' },
+    { key: 'gym', label: 'Gimnasio' },
+    { key: 'elevator', label: 'Ascensor' },
+    { key: 'parking', label: 'Estacionamiento' },
+    { key: 'petsAllowed', label: 'Mascotas permitidas' },
+    { key: 'smokeAlarm', label: 'Alarma de humo' },
+    { key: 'firstAidKit', label: 'Botiquín' },
+    { key: 'fireExtinguisher', label: 'Extintor' },
+    { key: 'securityCameras', label: 'Cámaras de seguridad' }
   ];
 
   // Token de autenticación
@@ -86,7 +92,7 @@ const AllFlats = () => {
     fetchFlats();
   }, [token]);
 
-  // Efecto para cargar favoritos si el usuario está autenticado
+  // Efecto para cargar favoritos
   useEffect(() => {
     const fetchFavorites = async () => {
       if (!token) return;
@@ -113,7 +119,8 @@ const AllFlats = () => {
   const filteredAndSortedFlats = flats.filter(flat => {
     // Filtro de búsqueda
     const matchesSearch = flat.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       flat.streetName?.toLowerCase().includes(searchTerm.toLowerCase());
+                       flat.streetName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                       flat.title?.toLowerCase().includes(searchTerm.toLowerCase());
                       
     // Filtro de ciudad
     const matchesCity = cityFilter === "all" || flat.city === cityFilter;
@@ -128,20 +135,25 @@ const AllFlats = () => {
     const matchesBathrooms = bathroomsFilter === "all" || flat.bathrooms === parseInt(bathroomsFilter);
     
     // Filtro de aire acondicionado
-    const matchesAc = !hasAcFilter || flat.hasAC;
+    const matchesAc = !hasAcFilter || flat.amenities?.airConditioning;
     
     // Filtro de área
     const matchesArea = flat.areaSize >= areaRange[0] && flat.areaSize <= areaRange[1];
     
     // Filtro de amenities
     const matchesAmenities = selectedAmenities.length === 0 || 
-      selectedAmenities.every(amenity => flat.amenities?.includes(amenity));
+      selectedAmenities.every(amenityKey => {
+        if (amenityKey === 'parking') {
+          return flat.amenities?.parking?.available;
+        }
+        return flat.amenities?.[amenityKey];
+      });
     
     // Filtro de fecha disponible
     const matchesDate = !availableFrom || new Date(flat.dateAvailable) <= new Date(availableFrom);
     
     // Filtro de rating
-    const matchesRating = !ratingFilter || (flat.rating || 0) >= ratingFilter;
+    const matchesRating = !ratingFilter || (flat.ratings?.overall || 0) >= ratingFilter;
 
     return matchesSearch && matchesCity && matchesPrice && matchesBedrooms && 
            matchesBathrooms && matchesAc && matchesArea && matchesAmenities && 
@@ -179,6 +191,12 @@ const AllFlats = () => {
       setError('Error al actualizar favoritos. Por favor, intente más tarde.');
       console.error('Error toggling favorite:', err);
     }
+  };
+
+  // Función para ver detalles
+  const handleViewDetails = (id) => {
+    // Implementar navegación a la página de detalles
+    window.location.href = `/flats/${id}`;
   };
 
   // Función para resetear filtros
@@ -240,7 +258,7 @@ const AllFlats = () => {
         <Box sx={{ flex: 1 }}>
           {loading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress />
+              <CircularProgress sx={{ color: '#17A5AA' }} />
             </Box>
           ) : (
             <>
@@ -251,6 +269,7 @@ const AllFlats = () => {
                     flat={flat}
                     isFavorite={favorites.includes(flat._id)}
                     onToggleFavorite={handleToggleFavorite}
+                    onViewDetails={handleViewDetails}
                   />
                 ))}
               </Box>

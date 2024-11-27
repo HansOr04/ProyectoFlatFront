@@ -14,9 +14,13 @@ import {
   Divider,
   Button,
   Rating,
-  InputAdornment
+  InputAdornment,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 const FiltersSidebar = ({
   searchTerm,
@@ -31,8 +35,6 @@ const FiltersSidebar = ({
   setBedroomsFilter,
   bathroomsFilter,
   setBathroomsFilter,
-  hasAcFilter,
-  setHasAcFilter,
   areaRange,
   setAreaRange,
   selectedAmenities,
@@ -41,7 +43,6 @@ const FiltersSidebar = ({
   setAvailableFrom,
   ratingFilter,
   setRatingFilter,
-  availableAmenities,
   flats,
   resetFilters
 }) => {
@@ -60,6 +61,36 @@ const FiltersSidebar = ({
     { value: 'asc', label: 'Menor a mayor' },
     { value: 'desc', label: 'Mayor a menor' }
   ];
+
+  // Grupos de amenities organizados
+  const AMENITIES_GROUPS = {
+    'Básicas': [
+      { key: 'wifi', label: 'WiFi' },
+      { key: 'tv', label: 'TV' },
+      { key: 'kitchen', label: 'Cocina' },
+      { key: 'washer', label: 'Lavadora' },
+      { key: 'airConditioning', label: 'Aire acondicionado' },
+      { key: 'heating', label: 'Calefacción' },
+      { key: 'workspace', label: 'Área de trabajo' }
+    ],
+    'Instalaciones': [
+      { key: 'pool', label: 'Piscina' },
+      { key: 'gym', label: 'Gimnasio' },
+      { key: 'elevator', label: 'Ascensor' },
+      { key: 'parking', label: 'Estacionamiento' }
+    ],
+    'Seguridad': [
+      { key: 'smokeAlarm', label: 'Alarma de humo' },
+      { key: 'firstAidKit', label: 'Botiquín' },
+      { key: 'fireExtinguisher', label: 'Extintor' },
+      { key: 'securityCameras', label: 'Cámaras de seguridad' }
+    ],
+    'Extras': [
+      { key: 'petsAllowed', label: 'Mascotas permitidas' }
+    ]
+  };
+
+  const [expandedSection, setExpandedSection] = React.useState('Básicas');
 
   return (
     <Paper 
@@ -107,12 +138,32 @@ const FiltersSidebar = ({
             onChange={(e) => setCityFilter(e.target.value)}
             label="Ciudad"
           >
-            <MenuItem key="all-cities" value="all">Todas las ciudades</MenuItem>
+            <MenuItem value="all">Todas las ciudades</MenuItem>
             {uniqueCities.map(city => (
-              <MenuItem key={`city-${city}`} value={city}>{city}</MenuItem>
+              <MenuItem key={city} value={city}>{city}</MenuItem>
             ))}
           </Select>
         </FormControl>
+
+        <Divider />
+
+        {/* Rating */}
+        <Box>
+          <Typography gutterBottom>Calificación mínima</Typography>
+          <Rating
+            value={ratingFilter}
+            onChange={(_, newValue) => setRatingFilter(newValue)}
+            precision={0.5}
+            sx={{
+              '& .MuiRating-iconFilled': {
+                color: '#17A5AA',
+              },
+              '& .MuiRating-iconHover': {
+                color: '#148f94',
+              },
+            }}
+          />
+        </Box>
 
         <Divider />
 
@@ -142,7 +193,7 @@ const FiltersSidebar = ({
             label="Ordenar por precio"
           >
             {SORT_OPTIONS.map(option => (
-              <MenuItem key={`sort-${option.value}`} value={option.value}>
+              <MenuItem key={option.value} value={option.value}>
                 {option.label}
               </MenuItem>
             ))}
@@ -151,7 +202,7 @@ const FiltersSidebar = ({
 
         <Divider />
 
-        {/* Habitaciones */}
+        {/* Habitaciones y Baños */}
         <FormControl fullWidth size="small">
           <InputLabel>Dormitorios</InputLabel>
           <Select
@@ -159,16 +210,15 @@ const FiltersSidebar = ({
             onChange={(e) => setBedroomsFilter(e.target.value)}
             label="Dormitorios"
           >
-            <MenuItem key="all-bedrooms" value="all">Todos</MenuItem>
+            <MenuItem value="all">Todos</MenuItem>
             {BEDROOMS_RANGE.map(num => (
-              <MenuItem key={`bedrooms-${num}`} value={num}>
+              <MenuItem key={num} value={num}>
                 {num} dormitorio{num !== 1 ? 's' : ''}
               </MenuItem>
             ))}
           </Select>
         </FormControl>
 
-        {/* Baños */}
         <FormControl fullWidth size="small">
           <InputLabel>Baños</InputLabel>
           <Select
@@ -176,9 +226,9 @@ const FiltersSidebar = ({
             onChange={(e) => setBathroomsFilter(e.target.value)}
             label="Baños"
           >
-            <MenuItem key="all-bathrooms" value="all">Todos</MenuItem>
+            <MenuItem value="all">Todos</MenuItem>
             {BATHROOMS_RANGE.map(num => (
-              <MenuItem key={`bathrooms-${num}`} value={num}>
+              <MenuItem key={num} value={num}>
                 {num} baño{num !== 1 ? 's' : ''}
               </MenuItem>
             ))}
@@ -206,59 +256,56 @@ const FiltersSidebar = ({
 
         <Divider />
 
-        {/* Características adicionales */}
+        {/* Amenities agrupados en acordeones */}
         <Box>
-          <Typography gutterBottom>Características</Typography>
-          <FormControlLabel
-            control={
-              <Checkbox 
-                checked={hasAcFilter}
-                onChange={(e) => setHasAcFilter(e.target.checked)}
-                sx={{ '&.Mui-checked': { color: "#17A5AA" } }}
-              />
-            }
-            label="Aire acondicionado"
-          />
-        </Box>
-
-        <Divider />
-
-        {/* Rating mínimo */}
-        <Box>
-          <Typography gutterBottom>Rating mínimo</Typography>
-          <Rating
-            value={ratingFilter}
-            onChange={(_, newValue) => setRatingFilter(newValue)}
-            precision={0.5}
-          />
-        </Box>
-
-        <Divider />
-
-        {/* Amenities */}
-        <Box>
-          <Typography gutterBottom>Amenities</Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            {availableAmenities.map((amenity) => (
-              <FormControlLabel
-                key={`amenity-${amenity.replace(/\s+/g, '-').toLowerCase()}`}
-                control={
-                  <Checkbox 
-                    checked={selectedAmenities.includes(amenity)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedAmenities([...selectedAmenities, amenity]);
-                      } else {
-                        setSelectedAmenities(selectedAmenities.filter(a => a !== amenity));
-                      }
-                    }}
-                    sx={{ '&.Mui-checked': { color: "#17A5AA" } }}
+          <Typography gutterBottom sx={{ mb: 2 }}>Amenities</Typography>
+          {Object.entries(AMENITIES_GROUPS).map(([groupName, amenities]) => (
+            <Accordion 
+              key={groupName}
+              expanded={expandedSection === groupName}
+              onChange={() => setExpandedSection(expandedSection === groupName ? false : groupName)}
+              sx={{ 
+                '&:before': { display: 'none' },
+                boxShadow: 'none',
+                backgroundColor: 'transparent'
+              }}
+            >
+              <AccordionSummary
+                expandIcon={<ExpandMoreIcon />}
+                sx={{ 
+                  padding: '0px',
+                  '& .MuiAccordionSummary-content': { margin: '4px 0' }
+                }}
+              >
+                <Typography variant="subtitle2">{groupName}</Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ padding: '0px 16px 8px' }}>
+                {amenities.map((amenity) => (
+                  <FormControlLabel
+                    key={amenity.key}
+                    control={
+                      <Checkbox 
+                        checked={selectedAmenities.includes(amenity.key)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedAmenities([...selectedAmenities, amenity.key]);
+                          } else {
+                            setSelectedAmenities(selectedAmenities.filter(a => a !== amenity.key));
+                          }
+                        }}
+                        sx={{ 
+                          '&.Mui-checked': { color: "#17A5AA" },
+                          padding: '4px'
+                        }}
+                      />
+                    }
+                    label={<Typography variant="body2">{amenity.label}</Typography>}
+                    sx={{ marginLeft: 0 }}
                   />
-                }
-                label={amenity}
-              />
-            ))}
-          </Box>
+                ))}
+              </AccordionDetails>
+            </Accordion>
+          ))}
         </Box>
 
         <Divider />
