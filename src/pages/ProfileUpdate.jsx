@@ -5,13 +5,18 @@ import {
   Container,
   Typography,
   Box,
-  Avatar,
+  Grid,
   IconButton,
   Paper,
-  Grid,
+  Avatar,
 } from "@mui/material";
-import PhotoCamera from "@mui/icons-material/PhotoCamera";
 import styled from "styled-components";
+import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
+import CancelIcon from "@mui/icons-material/Cancel";
+import InfoIcon from "@mui/icons-material/Info";
+import EditAttributesIcon from "@mui/icons-material/EditAttributes";
+import ShareIcon from "@mui/icons-material/Share";
 
 // Styled Components
 const StyledContainer = styled(Container)`
@@ -19,97 +24,125 @@ const StyledContainer = styled(Container)`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 2rem;
-  background-color: #f5f5f5;
+  padding: 3rem 2rem;
+  background-color: #f8f9fa;
 `;
 
 const StyledPaper = styled(Paper)`
-  padding: 2rem;
+  padding: 3rem;
   width: 100%;
-  max-width: 1200px;
+  max-width: 800px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 24px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  }
+`;
+
+const FieldContainer = styled(Box)`
+  width: 100%;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #f8f9fa;
+  }
+`;
+
+const FieldLabel = styled(Typography)`
+  font-weight: 600;
+  color: #2c3e50;
+  margin-right: 1.5rem;
+  min-width: 120px;
+`;
+
+const FieldActions = styled(Box)`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const InfoContainer = styled(Paper)`
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   border-radius: 16px;
-
-  @media (min-width: 960px) {
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 3rem;
+  transition: all 0.3s ease;
+  border: 1px solid #e0e0e0;
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
   }
-`;
-
-const ImageSection = styled(Box)`
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 2rem;
-
-  @media (min-width: 960px) {
-    margin-bottom: 0;
-    margin-right: 2rem;
+  .MuiSvgIcon-root {
+    margin-bottom: 1rem;
+    font-size: 2rem;
   }
-`;
 
-const FormSection = styled(Box)`
-  flex: 1;
-  width: 100%;
-  max-width: 500px;
-`;
+  .MuiTypography-h6 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    text-align: center;
+    margin-bottom: 0.75rem;
+  }
 
-const ProfileImageContainer = styled(Box)`
-  position: relative;
-  margin-bottom: 2rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  .MuiTypography-body2 {
+    color: #606060;
+    text-align: center;
+    line-height: 1.6;
+  }
 `;
 
 const StyledAvatar = styled(Avatar)`
-  width: 120px !important;
-  height: 120px !important;
-  margin-bottom: 1rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  cursor: pointer;
-  transition: transform 0.2s ease-in-out;
+  width: 80px !important;
+  height: 80px !important;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
 
   &:hover {
     transform: scale(1.05);
   }
 `;
 
-const CameraButton = styled(IconButton)`
-  position: absolute !important;
-  bottom: 0;
-  right: 50%;
-  transform: translateX(50%);
-  background-color: #fff !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+const StyledTextField = styled(TextField)`
+  .MuiOutlinedInput-root {
+    border-radius: 8px;
 
-  &:hover {
-    background-color: #f5f5f5 !important;
+    &:hover .MuiOutlinedInput-notchedOutline {
+      border-color: #1976d2;
+    }
   }
-`;
-
-const StyledForm = styled.form`
-  width: 100%;
-`;
-
-const StyledButton = styled(Button)`
-  margin-top: 2rem !important;
-  padding: 0.75rem !important;
 `;
 
 const ProfileUpdate = () => {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
-    email: "",
-    password: "",
+    email: "user@example.com", // Email quemado
     birthDate: "",
-    profileImage: null,
+    profileImage: "", // Campo para la imagen de perfil
+  });
+
+  const [editMode, setEditMode] = useState({
+    firstName: false,
+    lastName: false,
+    email: false,
+    birthDate: false,
+    profileImage: false, // Modo de edición para la imagen de perfil
   });
 
   const handleChange = (e) => {
@@ -120,152 +153,215 @@ const ProfileUpdate = () => {
     });
   };
 
-  const handleImageChange = (e) => {
-    if (e.target.files[0]) {
-      setFormData({
-        ...formData,
-        profileImage: URL.createObjectURL(e.target.files[0]),
-      });
-    }
+  const handleEdit = (field) => {
+    setEditMode({
+      ...editMode,
+      [field]: true,
+    });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log(formData);
+  const handleCancel = (field) => {
+    setEditMode({
+      ...editMode,
+      [field]: false,
+    });
+  };
+
+  const handleSave = (field) => {
+    setEditMode({
+      ...editMode,
+      [field]: false,
+    });
+    // Aquí puedes agregar la lógica para guardar los cambios
+    console.log(`Saved ${field}:`, formData[field]);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData({
+        ...formData,
+        profileImage: reader.result,
+      });
+    };
+    if (file) {
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
     <StyledContainer maxWidth={false}>
-      <StyledPaper elevation={3}>
-        <ImageSection>
-          <img
-            src="https://images.pexels.com/photos/1671051/pexels-photo-1671051.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
-            alt="Profile illustration"
-            style={{
-              width: "100%",
-              maxWidth: "400px",
-              height: "auto",
-              borderRadius: "16px",
-            }}
-          />
-        </ImageSection>
-
-        <FormSection>
-          <Typography
-            variant="h4"
-            component="h1"
-            gutterBottom
-            align="center"
-            sx={{ fontWeight: "bold", color: "#1976d2", marginBottom: "2rem" }}
-          >
-            Actualizar Perfil
-          </Typography>
-
-          <StyledForm onSubmit={handleSubmit}>
-            <ProfileImageContainer>
-              <StyledAvatar alt="Profile Image" src={formData.profileImage} />
-              <input
-                accept="image/*"
-                style={{ display: "none" }}
-                id="profileImage"
-                type="file"
-                onChange={handleImageChange}
-              />
-              <label htmlFor="profileImage">
-                <CameraButton
-                  color="primary"
-                  aria-label="upload picture"
-                  component="span"
-                >
-                  <PhotoCamera />
-                </CameraButton>
-              </label>
-            </ProfileImageContainer>
-
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  variant="outlined"
-                  required
-                  fullWidth
-                  id="firstName"
-                  label="Nombre"
-                  name="firstName"
-                  autoComplete="fname"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  variant="outlined"
-                  required
-                  fullWidth
-                  id="lastName"
-                  label="Apellido"
-                  name="lastName"
-                  autoComplete="lname"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  variant="outlined"
-                  required
-                  fullWidth
-                  id="email"
-                  label="Correo Electrónico"
-                  name="email"
-                  autoComplete="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  variant="outlined"
-                  required
-                  fullWidth
-                  name="password"
-                  label="Contraseña"
-                  type="password"
-                  id="password"
-                  autoComplete="current-password"
-                  value={formData.password}
-                  onChange={handleChange}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  variant="outlined"
-                  required
-                  fullWidth
-                  name="birthDate"
-                  label="Fecha de Nacimiento"
-                  type="date"
-                  id="birthDate"
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  value={formData.birthDate}
-                  onChange={handleChange}
-                />
-              </Grid>
-            </Grid>
-
-            <StyledButton
-              type="submit"
-              fullWidth
-              variant="contained"
-              color="primary"
-              size="large"
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={8}>
+          <StyledPaper elevation={3}>
+            <Typography
+              variant="h4"
+              component="h1"
+              gutterBottom
+              align="center"
+              sx={{
+                fontWeight: "700",
+                color: "#1a1a1a",
+                marginBottom: "3rem",
+                fontSize: "2rem",
+                letterSpacing: "-0.5px",
+              }}
             >
-              Actualizar Perfil
-            </StyledButton>
-          </StyledForm>
-        </FormSection>
-      </StyledPaper>
+              Información personal
+            </Typography>
+
+            <FieldContainer>
+              <FieldLabel>Profile Image</FieldLabel>
+              {editMode.profileImage ? (
+                <>
+                  <input
+                    accept="image/*"
+                    type="file"
+                    onChange={handleImageChange}
+                    style={{ display: "none" }}
+                    id="profile-image-upload"
+                  />
+                  <label htmlFor="profile-image-upload">
+                    <Button
+                      variant="contained"
+                      component="span"
+                      sx={{
+                        borderRadius: "8px",
+                        textTransform: "none",
+                        padding: "8px 16px",
+                        boxShadow: "none",
+                        "&:hover": {
+                          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                        },
+                      }}
+                    >
+                      Upload
+                    </Button>
+                  </label>
+                </>
+              ) : (
+                <StyledAvatar alt="Profile Image" src={formData.profileImage} />
+              )}
+              <FieldActions>
+                {editMode.profileImage ? (
+                  <>
+                    <IconButton
+                      color="primary"
+                      onClick={() => handleSave("profileImage")}
+                    >
+                      <SaveIcon />
+                    </IconButton>
+                    <IconButton
+                      color="secondary"
+                      onClick={() => handleCancel("profileImage")}
+                    >
+                      <CancelIcon />
+                    </IconButton>
+                  </>
+                ) : (
+                  <IconButton
+                    color="primary"
+                    onClick={() => handleEdit("profileImage")}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                )}
+              </FieldActions>
+            </FieldContainer>
+
+            {Object.keys(formData).map(
+              (field) =>
+                field !== "profileImage" &&
+                field !== "email" && (
+                  <FieldContainer key={field}>
+                    <FieldLabel>
+                      {field.charAt(0).toUpperCase() + field.slice(1)}
+                    </FieldLabel>
+                    {editMode[field] ? (
+                      <StyledTextField
+                        variant="outlined"
+                        fullWidth
+                        name={field}
+                        value={formData[field]}
+                        onChange={handleChange}
+                        type={field === "birthDate" ? "date" : "text"}
+                        InputLabelProps={
+                          field === "birthDate" ? { shrink: true } : {}
+                        }
+                      />
+                    ) : (
+                      <Typography>{formData[field]}</Typography>
+                    )}
+                    <FieldActions>
+                      {editMode[field] ? (
+                        <>
+                          <IconButton
+                            color="primary"
+                            onClick={() => handleSave(field)}
+                          >
+                            <SaveIcon />
+                          </IconButton>
+                          <IconButton
+                            color="secondary"
+                            onClick={() => handleCancel(field)}
+                          >
+                            <CancelIcon />
+                          </IconButton>
+                        </>
+                      ) : (
+                        <IconButton
+                          color="primary"
+                          onClick={() => handleEdit(field)}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                      )}
+                    </FieldActions>
+                  </FieldContainer>
+                )
+            )}
+
+            <FieldContainer>
+              <FieldLabel>Email</FieldLabel>
+              <Typography>{formData.email}</Typography>
+            </FieldContainer>
+          </StyledPaper>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <InfoContainer elevation={1}>
+            <InfoIcon color="primary" fontSize="large" />
+            <Typography variant="h6" gutterBottom>
+              ¿Por qué no aparece mi información aquí?
+            </Typography>
+            <Typography variant="body2">
+              Ocultamos algunos datos de la cuenta para proteger tu identidad.
+            </Typography>
+          </InfoContainer>
+          <InfoContainer elevation={1}>
+            <EditAttributesIcon color="primary" fontSize="large" />
+            <Typography variant="h6" gutterBottom>
+              ¿Qué datos se pueden editar?
+            </Typography>
+            <Typography variant="body2">
+              Los datos personales y de contacto pueden editarse. Si usamos esta
+              información para verificar tu identidad, tendrás que volver a
+              verificarla la próxima vez que hagas una reservación o quieras
+              volver a anfitrionar.
+            </Typography>
+          </InfoContainer>
+          <InfoContainer elevation={1}>
+            <ShareIcon color="primary" fontSize="large" />
+            <Typography variant="h6" gutterBottom>
+              ¿Qué información se comparte con los demás?
+            </Typography>
+            <Typography variant="body2">
+              Airbnb solo proporciona los datos de contacto de los anfitriones y
+              los huéspedes una vez que la reservación se haya confirmado.
+            </Typography>
+          </InfoContainer>
+        </Grid>
+      </Grid>
     </StyledContainer>
   );
 };
