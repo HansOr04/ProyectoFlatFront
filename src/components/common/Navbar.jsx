@@ -16,13 +16,13 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import MapsHomeWorkIcon from '@mui/icons-material/MapsHomeWork';
+import AddIcon from '@mui/icons-material/Add';
 import { styled } from '@mui/material/styles';
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 
-// Styled Components
 const StyledAppBar = styled(AppBar)(({ theme }) => ({
   backgroundColor: 'white',
   boxShadow: 'none',
@@ -79,6 +79,22 @@ const NavButton = styled(Button)(({ theme }) => ({
   }
 }));
 
+const CreateFlatButton = styled(Button)(({ theme }) => ({
+  backgroundColor: 'rgb(23, 165, 170)',
+  color: 'white',
+  margin: '0 16px',
+  fontFamily: 'Roboto',
+  fontWeight: 500,
+  padding: '6px 16px',
+  borderRadius: '8px',
+  transition: 'all 0.3s ease-in-out',
+  '&:hover': {
+    backgroundColor: '#0E3F33',
+    transform: 'translateY(-2px)',
+    boxShadow: '0 4px 8px rgba(23, 165, 170, 0.2)',
+  }
+}));
+
 const AuthButton = styled(Button)(({ variant }) => ({
   fontFamily: 'Roboto',
   fontWeight: 500,
@@ -118,11 +134,11 @@ const NavMenuItem = styled(MenuItem)({
 });
 
 const StyledAvatar = styled(Avatar)(({ theme }) => ({
-  backgroundColor: '#1FD1D7',
+  backgroundColor: 'rgb(23, 165, 170)',
   transition: 'all 0.3s ease-in-out',
   '&:hover': {
     transform: 'scale(1.1)',
-    boxShadow: '0 4px 8px rgba(31, 209, 215, 0.2)',
+    boxShadow: '0 4px 8px rgba(23, 165, 170, 0.2)',
   }
 }));
 
@@ -133,7 +149,6 @@ const Navbar = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
 
-  // Definir los manejadores de eventos primero
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
   };
@@ -171,6 +186,10 @@ const Navbar = () => {
     navigate('/');
   };
 
+  const handleCreateFlat = () => {
+    navigate('/create-flat');
+  };
+
   const handleNavigation = (page) => {
     if (page.requireAuth && !isAuthenticated) {
       navigate('/login');
@@ -185,7 +204,6 @@ const Navbar = () => {
     handleCloseUserMenu();
   };
 
-  // Páginas y settings
   const pages = [
     { name: 'Inicio', path: '/' },
     { name: 'Apartamentos', path: '/allflats', requireAuth: true },
@@ -198,7 +216,6 @@ const Navbar = () => {
     { name: 'Logout', action: handleLogout }
   ]);
 
-  // useEffect para verificar autenticación
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('token');
@@ -229,7 +246,6 @@ const Navbar = () => {
     <StyledAppBar>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
-          {/* Desktop Logo */}
           <LogoContainer
             onClick={handleLogoClick}
             sx={{
@@ -243,7 +259,6 @@ const Navbar = () => {
             </LogoText>
           </LogoContainer>
 
-          {/* Mobile Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
             <IconButton
               size="large"
@@ -281,10 +296,22 @@ const Navbar = () => {
                   <Typography textAlign="center">{page.name}</Typography>
                 </NavMenuItem>
               ))}
+              {isAuthenticated && (
+                <NavMenuItem 
+                  onClick={handleCreateFlat}
+                  sx={{
+                    color: 'rgb(23, 165, 170)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(23, 165, 170, 0.1)',
+                    }
+                  }}
+                >
+                  <Typography textAlign="center">Crear Flat</Typography>
+                </NavMenuItem>
+              )}
             </Menu>
           </Box>
 
-          {/* Mobile Logo */}
           <LogoContainer
             onClick={handleLogoClick}
             sx={{
@@ -299,7 +326,6 @@ const Navbar = () => {
             </LogoText>
           </LogoContainer>
 
-          {/* Desktop Menu */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
             {pages.map((page) => (
               <NavButton
@@ -311,10 +337,15 @@ const Navbar = () => {
             ))}
           </Box>
 
-          {/* Auth Section */}
-          <Box sx={{ flexGrow: 0 }}>
+          <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
             {isAuthenticated ? (
               <>
+                <CreateFlatButton
+                  onClick={handleCreateFlat}
+                  startIcon={<AddIcon />}
+                >
+                  Crear Flat
+                </CreateFlatButton>
                 <Tooltip title="Open settings">
                   <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
                     <StyledAvatar src={userInfo?.profileImage || null}>

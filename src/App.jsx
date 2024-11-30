@@ -6,9 +6,11 @@ import LoginRegisterPage from './pages/LoginRegisterPage.jsx';
 import MyApartments from './pages/MyApartments.jsx';
 import FavoritesView from './pages/FavoritesView.jsx';
 import DetailsFlatPage from './pages/DetailsFlatPage.jsx';
-import EditApartment from './pages/EditAparment.jsx';  // Solo necesitamos esta nueva página
+import EditApartment from './pages/EditAparment.jsx';
+import CreateFlat from './pages/CreateFlat.jsx';  // Importamos el nuevo componente
 import ProtectedRoute from './components/security/ProtectRoute.jsx';
 import { Navigate } from 'react-router-dom';
+
 
 const NotFound = () => (
   <div style={{ 
@@ -33,7 +35,6 @@ const NotFound = () => (
     </button>
   </div>
 );
-
 function App() {
   return (
     <Router>
@@ -64,6 +65,13 @@ function App() {
           <Route path="/apartments/edit/:id" element={
             <ProtectedRoute>
               <EditApartment />
+            </ProtectedRoute>
+          } />
+
+          {/* Nueva ruta para crear flat */}
+          <Route path="/create-flat" element={
+            <ProtectedRoute>
+              <CreateFlat />
             </ProtectedRoute>
           } />
           
