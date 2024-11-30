@@ -2,15 +2,14 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/common/Navbar.jsx';
 import Homepage from './components/principal/Homepage.jsx';
 import AllFlats from './pages/allFlats.jsx';
-import LoginRegisterPage from './pages/LoginRegisterPage.jsx'; // Actualizado al nuevo nombre
-//import Profile from './pages/Profile.jsx';
-//import MyApartments from './pages/MyApartments.jsx';
-//import Favorites from './pages/Favorites.jsx';
-//import AdminPanel from './pages/AdminPanel.jsx';
+import LoginRegisterPage from './pages/LoginRegisterPage.jsx';
+import MyApartments from './pages/MyApartments.jsx';
+import FavoritesView from './pages/FavoritesView.jsx';
+import DetailsFlatPage from './pages/DetailsFlatPage.jsx';
+import EditApartment from './pages/EditAparment.jsx';  // Solo necesitamos esta nueva página
 import ProtectedRoute from './components/security/ProtectRoute.jsx';
 import { Navigate } from 'react-router-dom';
 
-// Componente para el error 404
 const NotFound = () => (
   <div style={{ 
     display: 'flex', 
@@ -55,6 +54,19 @@ function App() {
               <AllFlats />
             </ProtectedRoute>
           } />
+          
+          <Route path="/flats/:id" element={
+            <ProtectedRoute>
+              <DetailsFlatPage />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/apartments/edit/:id" element={
+            <ProtectedRoute>
+              <EditApartment />
+            </ProtectedRoute>
+          } />
+          
           <Route path="/profile" element={
             <ProtectedRoute>
              {/* <Profile />*/}
@@ -63,20 +75,20 @@ function App() {
           
           <Route path="/my-apartments" element={
             <ProtectedRoute>
-              {/* <MyApartments />*/}
+              <MyApartments />
             </ProtectedRoute>
           } />
           
           <Route path="/favorites" element={
             <ProtectedRoute>
-              {/* <Favorites />*/}
+              <FavoritesView />
             </ProtectedRoute>
           } />
 
           {/* Ruta de admin */}
           <Route path="/admin" element={
             <ProtectedRoute adminOnly>
-{/*               <AdminPanel />*/}
+              {/* <AdminPanel />*/}
             </ProtectedRoute>
           } />
 
@@ -88,7 +100,6 @@ function App() {
   );
 }
 
-// Componente para rutas públicas (redirige si está autenticado)
 const PublicRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('token') !== null;
   
@@ -98,7 +109,5 @@ const PublicRoute = ({ children }) => {
 
   return children;
 };
-
-
 
 export default App;

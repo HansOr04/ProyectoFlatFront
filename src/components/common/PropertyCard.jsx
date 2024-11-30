@@ -20,7 +20,7 @@ import {
   CalendarToday as CalendarTodayIcon,
   SquareFoot as SquareFootIcon,
   AcUnit as AcUnitIcon,
-  Business as BusinessIcon,  // Asegúrate de que esta importación esté presente
+  Business as BusinessIcon,
   Update as UpdateIcon,
   EventAvailable as EventAvailableIcon,
   Photo as PhotoIcon,
@@ -38,10 +38,13 @@ import {
   Elevator as ElevatorIcon,
   LocalParking as ParkingIcon,
   Pets as PetsIcon,
-  Security as SecurityIcon
+  Security as SecurityIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Message as MessageIcon,
+  Collections as CollectionsIcon
 } from '@mui/icons-material';
 
-// Estilos personalizados
 const StyledCard = styled(Card)(({ theme }) => ({
   display: 'flex',
   flexDirection: 'row',
@@ -50,7 +53,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
   transition: 'all 0.3s ease',
   backgroundColor: '#ffffff',
   border: '1px solid rgba(0, 0, 0, 0.08)',
-  height: '280px', // Aumentado para acomodar más contenido
+  height: '280px',
   '&:hover': {
     transform: 'translateY(-8px)',
     boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)',
@@ -59,7 +62,7 @@ const StyledCard = styled(Card)(({ theme }) => ({
 
 const StyledCardMedia = styled(CardMedia)(({ theme }) => ({
   width: '300px',
-  height: '280px', // Actualizado para mantener proporción
+  height: '280px',
   objectFit: 'cover',
   transition: 'transform 0.3s ease',
   position: 'relative',
@@ -141,15 +144,22 @@ const StyledRating = styled(Rating)(({ theme }) => ({
     color: '#148f94',
   }
 }));
-
-const PropertyCard = ({ flat, isFavorite, onToggleFavorite, onViewDetails }) => {
-  // Función para obtener la imagen principal
+const PropertyCard = ({ 
+  flat, 
+  isFavorite, 
+  isOwnerView = false, 
+  onToggleFavorite, 
+  onViewDetails,
+  onEdit,
+  onDelete,
+  onManageMessages,
+  onManageImages
+}) => {
   const getMainImage = () => {
     const mainImage = flat.images?.find(img => img.isMainImage);
     return mainImage?.url || flat.images?.[0]?.url || 'https://via.placeholder.com/300x280';
   };
 
-  // Función para formatear precios
   const formatPrice = (price) => {
     return price.toLocaleString('es-EC', {
       style: 'currency',
@@ -158,7 +168,6 @@ const PropertyCard = ({ flat, isFavorite, onToggleFavorite, onViewDetails }) => 
     });
   };
 
-  // Función para formatear fechas
   const formatSimpleDate = (date) => {
     return new Date(date).toLocaleDateString('es-EC', {
       year: 'numeric',
@@ -167,7 +176,6 @@ const PropertyCard = ({ flat, isFavorite, onToggleFavorite, onViewDetails }) => 
     });
   };
 
-  // Función para obtener los amenities principales
   const getMainAmenities = () => {
     const amenities = [];
     if (flat.amenities) {
@@ -188,7 +196,7 @@ const PropertyCard = ({ flat, isFavorite, onToggleFavorite, onViewDetails }) => 
       if (flat.amenities.petsAllowed) amenities.push({ icon: <PetsIcon />, label: 'Mascotas' });
       if (flat.amenities.securityCameras) amenities.push({ icon: <SecurityIcon />, label: 'Seguridad' });
     }
-    return amenities.slice(0, 8); // Mostrar solo los 8 primeros
+    return amenities.slice(0, 8);
   };
 
   return (
@@ -206,7 +214,6 @@ const PropertyCard = ({ flat, isFavorite, onToggleFavorite, onViewDetails }) => 
       </Box>
 
       <ContentWrapper>
-        {/* Header con título, ubicación y rating */}
         <Box sx={{ mb: 1 }}>
           <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
             <Box>
@@ -239,7 +246,6 @@ const PropertyCard = ({ flat, isFavorite, onToggleFavorite, onViewDetails }) => 
           </Stack>
         </Box>
 
-        {/* Características principales */}
         <Stack direction="row" spacing={1} flexWrap="wrap" gap={1} sx={{ mb: 1.5 }}>
           <InfoChip
             icon={<SingleBedIcon />}
@@ -262,13 +268,12 @@ const PropertyCard = ({ flat, isFavorite, onToggleFavorite, onViewDetails }) => 
             size="small"
           />
           <InfoChip
-  icon={<BusinessIcon />}  // Cambiado de Business a BusinessIcon
-  label={`Año ${flat.yearBuilt}`}
-  size="small"
-/>
+            icon={<BusinessIcon />}
+            label={`Año ${flat.yearBuilt}`}
+            size="small"
+          />
         </Stack>
 
-        {/* Amenities */}
         <Box>
           <Typography variant="subtitle2" sx={{ mb: 0.5, color: '#666' }}>
             Amenities
@@ -288,7 +293,6 @@ const PropertyCard = ({ flat, isFavorite, onToggleFavorite, onViewDetails }) => 
 
         <Divider sx={{ my: 1.5 }} />
 
-        {/* Fechas y precio */}
         <Box sx={{ mt: 'auto' }}>
           <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
             <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -305,7 +309,6 @@ const PropertyCard = ({ flat, isFavorite, onToggleFavorite, onViewDetails }) => 
             </Stack>
           </Stack>
 
-          {/* Precio y acciones */}
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="h5" sx={{ fontWeight: 800, color: '#17A5AA' }}>
               {formatPrice(flat.rentPrice)}
@@ -314,21 +317,78 @@ const PropertyCard = ({ flat, isFavorite, onToggleFavorite, onViewDetails }) => 
               </Typography>
             </Typography>
             <Stack direction="row" spacing={1}>
-              <IconButton
-                size="small"
-                onClick={() => onToggleFavorite(flat._id)}
-                sx={{
-                  bgcolor: 'white',
-                  boxShadow: 1,
-                  '&:hover': { bgcolor: '#fff5f5' }
-                }}
-              >
-                {isFavorite ? (
-                  <FavoriteIcon sx={{ color: '#ff4d4d' }} />
-                ) : (
-                  <FavoriteBorderIcon sx={{ color: '#666' }} />
-                )}
-              </IconButton>
+              {isOwnerView ? (
+                <>
+                  <Tooltip title="Editar propiedad">
+                    <IconButton
+                      size="small"
+                      onClick={() => onEdit(flat._id)}
+                      sx={{
+                        bgcolor: 'white',
+                        boxShadow: 1,
+                        '&:hover': { bgcolor: '#f0f7f7' }
+                      }}
+                    >
+                      <EditIcon sx={{ color: '#666' }} />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Gestionar imágenes">
+                    <IconButton
+                      size="small"
+                      onClick={() => onManageImages(flat._id)}
+                      sx={{
+                        bgcolor: 'white',
+                        boxShadow: 1,
+                        '&:hover': { bgcolor: '#f0f7f7' }
+                      }}
+                    >
+                      <CollectionsIcon sx={{ color: '#666' }} />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Eliminar propiedad">
+                    <IconButton
+                      size="small"
+                      onClick={() => onDelete(flat._id)}
+                      sx={{
+                        bgcolor: 'white',
+                        boxShadow: 1,
+                        '&:hover': { bgcolor: '#fff5f5' }
+                      }}
+                    >
+                      <DeleteIcon sx={{ color: '#666' }} />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Gestionar mensajes">
+                    <IconButton
+                      size="small"
+                      onClick={() => onManageMessages(flat._id)}
+                      sx={{
+                        bgcolor: 'white',
+                        boxShadow: 1,
+                        '&:hover': { bgcolor: '#f0f7f7' }
+                      }}
+                    >
+                      <MessageIcon sx={{ color: '#666' }} />
+                    </IconButton>
+                  </Tooltip>
+                </>
+              ) : (
+                <IconButton
+                  size="small"
+                  onClick={() => onToggleFavorite(flat._id)}
+                  sx={{
+                    bgcolor: 'white',
+                    boxShadow: 1,
+                    '&:hover': { bgcolor: '#fff5f5' }
+                  }}
+                >
+                  {isFavorite ? (
+                    <FavoriteIcon sx={{ color: '#ff4d4d' }} />
+                  ) : (
+                    <FavoriteBorderIcon sx={{ color: '#666' }} />
+                  )}
+                </IconButton>
+              )}
               <StyledButton
                 variant="contained"
                 endIcon={<ArrowForwardIcon />}
