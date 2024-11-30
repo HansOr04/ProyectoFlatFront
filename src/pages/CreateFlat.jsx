@@ -1,5 +1,4 @@
-// Primero, agreguemos los imports necesarios
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   Container,
   Box,
@@ -10,52 +9,91 @@ import {
   Checkbox,
   Paper,
   Grid,
-  IconButton,
-  Divider,
-  Select,
-  MenuItem,
   FormControl,
   InputLabel,
-} from "@mui/material";
-import styled from "styled-components";
-import axios from "axios";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+  Select,
+  MenuItem,
+} from '@mui/material';
+import styled from 'styled-components';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import DeleteIcon from '@mui/icons-material/Delete';
+import {
+  Wifi as WifiIcon,
+  Tv as TvIcon,
+  Kitchen as KitchenIcon,
+  LocalLaundryService as WasherIcon,
+  AcUnit as AcIcon,
+  HeatPump as HeatingIcon,
+  Work as WorkspaceIcon,
+  Pool as PoolIcon,
+  FitnessCenter as GymIcon,
+  Elevator as ElevatorIcon,
+  Pets as PetsIcon,
+  HealthAndSafety as SecurityIcon,
+  LocalHospital as FirstAidIcon,
+  FireExtinguisher as FireExtinguisherIcon,
+  VideoCameraBack as CameraIcon,
+  LocalParking as ParkingIcon,
+} from '@mui/icons-material';
 
-// Importamos todos los íconos necesarios para las amenities
-import WifiIcon from '@mui/icons-material/Wifi';
-import TvIcon from '@mui/icons-material/Tv';
-import KitchenIcon from '@mui/icons-material/Kitchen';
-import LocalLaundryServiceIcon from '@mui/icons-material/LocalLaundryService';
-import AcUnitIcon from '@mui/icons-material/AcUnit';
-import HeatPumpIcon from '@mui/icons-material/HeatPump';
-import WeekendIcon from '@mui/icons-material/Weekend';
-import PoolIcon from '@mui/icons-material/Pool';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import ElevatorIcon from '@mui/icons-material/Elevator';
-import LocalParkingIcon from '@mui/icons-material/LocalParking';
-import PetsIcon from '@mui/icons-material/Pets';
-import SmokingRoomsIcon from '@mui/icons-material/SmokingRooms';
-import CelebrationIcon from '@mui/icons-material/Celebration';
-import BedroomParentIcon from '@mui/icons-material/BedroomParent';
-import BathtubIcon from '@mui/icons-material/Bathtub';
-import GroupIcon from '@mui/icons-material/Group';
-import WorkIcon from '@mui/icons-material/Work';
+// Styled Components
+const FormSection = styled(Box)`
+  margin: 24px 0;
+  padding: 24px;
+  background: #f8f9fa;
+  border-radius: 12px;
+`;
 
+const SectionTitle = styled(Typography)`
+  color: #2c3e50;
+  font-weight: 600;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgb(23, 165, 170);
+`;
+
+const AmenityBox = styled(Box)`
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+`;
+
+const AmenityCard = styled(Box)`
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  &:hover {
+    background-color: rgba(23, 165, 170, 0.1);
+  }
+  &.selected {
+    background-color: rgba(23, 165, 170, 0.2);
+    border-color: rgb(23, 165, 170);
+  }
+`;
+
+// Configuración inicial del formulario
 const initialFormData = {
-  title: "",
-  description: "",
-  propertyType: "apartment",
-  city: "",
-  streetName: "",
-  streetNumber: "",
-  areaSize: "",
-  bedrooms: "",
-  bathrooms: "",
-  maxGuests: "",
-  yearBuilt: "",
-  rentPrice: "",
-  dateAvailable: "",
-  images: [],
+  // Información básica
+  title: '',
+  description: '',
+  propertyType: '',
+  city: '',
+  streetName: '',
+  streetNumber: '',
+  areaSize: '',
+  yearBuilt: '',
+  rentPrice: '',
+  dateAvailable: '',
+  bedrooms: '',
+  bathrooms: '',
+  maxGuests: '',
+
+  // Amenidades
   amenities: {
     wifi: false,
     tv: false,
@@ -64,11 +102,6 @@ const initialFormData = {
     airConditioning: false,
     heating: false,
     workspace: false,
-    parking: {
-      available: false,
-      type: 'none',
-      details: ""
-    },
     pool: false,
     gym: false,
     elevator: false,
@@ -76,374 +109,751 @@ const initialFormData = {
     smokeAlarm: false,
     firstAidKit: false,
     fireExtinguisher: false,
-    securityCameras: false
+    securityCameras: false,
+    parking: {
+      available: false,
+      type: 'none',
+      details: ''
+    }
   },
+
+  // Reglas de la casa
   houseRules: {
     smokingAllowed: false,
     eventsAllowed: false,
     quietHours: {
-      start: "22:00",
-      end: "08:00"
+      start: '22:00',
+      end: '08:00'
     },
-    additionalRules: []
-  }
+    additionalRules: ['']
+  },
+
+  // Ubicación
+  location: {
+    coordinates: {
+      lat: '',
+      lng: ''
+    },
+    neighborhood: '',
+    zipCode: '',
+    publicTransport: [''],
+    nearbyPlaces: ['']
+  },
+
+  // Disponibilidad
+  availability: {
+    minimumStay: '',
+    maximumStay: '',
+    instantBooking: false,
+    advanceNotice: ''
+  },
+
+  images: []
 };
 
-const AmenityBox = styled(Box)`
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 16px;
-  margin: 8px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-const FormPaper = styled(Paper)`
-  padding: 32px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-`;
+// Configuraciones
+const amenitiesConfig = [
+  { key: 'wifi', label: 'WiFi', icon: WifiIcon },
+  { key: 'tv', label: 'TV', icon: TvIcon },
+  { key: 'kitchen', label: 'Cocina', icon: KitchenIcon },
+  { key: 'washer', label: 'Lavadora', icon: WasherIcon },
+  { key: 'airConditioning', label: 'Aire Acondicionado', icon: AcIcon },
+  { key: 'heating', label: 'Calefacción', icon: HeatingIcon },
+  { key: 'workspace', label: 'Zona de trabajo', icon: WorkspaceIcon },
+  { key: 'pool', label: 'Piscina', icon: PoolIcon },
+  { key: 'gym', label: 'Gimnasio', icon: GymIcon },
+  { key: 'elevator', label: 'Elevador', icon: ElevatorIcon },
+  { key: 'petsAllowed', label: 'Mascotas permitidas', icon: PetsIcon },
+  { key: 'smokeAlarm', label: 'Alarma de humo', icon: SecurityIcon },
+  { key: 'firstAidKit', label: 'Botiquín', icon: FirstAidIcon },
+  { key: 'fireExtinguisher', label: 'Extintor', icon: FireExtinguisherIcon },
+  { key: 'securityCameras', label: 'Cámaras de seguridad', icon: CameraIcon }
+];
 
-const FormTitle = styled(Typography)`
-  margin-bottom: 24px;
-  color: #2c3e50;
-  font-weight: 600;
-  text-align: center;
-`;
+const propertyTypes = [
+  { value: 'apartment', label: 'Apartamento' },
+  { value: 'house', label: 'Casa' },
+  { value: 'studio', label: 'Estudio' },
+  { value: 'loft', label: 'Loft' },
+  { value: 'room', label: 'Habitación' }
+];
 
-const AmenityCheckbox = styled(FormControlLabel)`
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  margin: 4px;
-  padding: 8px;
-  flex: 1;
-  min-width: 200px;
-  transition: all 0.3s ease;
+const parkingTypes = [
+  { value: 'free', label: 'Gratuito' },
+  { value: 'paid', label: 'De pago' },
+  { value: 'street', label: 'En la calle' }
+];
 
-  &:hover {
-    background-color: rgba(23, 165, 170, 0.1);
-  }
-
-  &.Mui-checked {
-    background-color: rgba(23, 165, 170, 0.2);
-    border-color: rgb(23, 165, 170);
-  }
-`;
-const PageContainer = styled(Container)`
-  padding: 24px;
-  margin-top: 20px;
-  margin-bottom: 20px;
-`;
-
-const StyledTextField = styled(TextField)`
-  & .MuiOutlinedInput-root {
-    &:hover fieldset {
-      border-color: rgb(23, 165, 170);
-    }
-  }
-  & .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-    border-color: rgb(23, 165, 170);
-  }
-  & .MuiInputLabel-root.Mui-focused {
-    color: rgb(23, 165, 170);
-  }
-`;
-const SubmitButton = styled(Button)`
-  background-color: rgb(23, 165, 170);
-  padding: 12px;
-  margin-top: 16px;
-  font-weight: 600;
-  
-  &:hover {
-    background-color: rgb(18, 140, 145);
-  }
-  
-  &:disabled {
-    background-color: rgba(23, 165, 170, 0.5);
-  }
-`;
 const CreateFlat = () => {
-    const [formData, setFormData] = useState(initialFormData);
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState("");
-  
-    const handleChange = (e) => {
-      const { name, value, type, checked } = e.target;
-      if (name.includes('.')) {
-        const [parent, child] = name.split('.');
-        setFormData(prev => ({
-          ...prev,
-          [parent]: {
-            ...prev[parent],
-            [child]: type === 'checkbox' ? checked : value
-          }
-        }));
-      } else {
-        setFormData(prev => ({
-          ...prev,
-          [name]: type === 'checkbox' ? checked : value
-        }));
-      }
-    };
-  
-    const handleAmenityChange = (amenity) => {
-      setFormData(prev => ({
-        ...prev,
-        amenities: {
-          ...prev.amenities,
-          [amenity]: !prev.amenities[amenity]
+  const [formData, setFormData] = useState(initialFormData);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    if (name.includes('.')) {
+      const parts = name.split('.');
+      setFormData(prev => {
+        let newData = { ...prev };
+        let current = newData;
+        for (let i = 0; i < parts.length - 1; i++) {
+          current = current[parts[i]];
         }
-      }));
-    };
-  
-    const handleParkingChange = (field, value) => {
+        current[parts[parts.length - 1]] = type === 'checkbox' ? checked : value;
+        return newData;
+      });
+    } else {
       setFormData(prev => ({
         ...prev,
-        amenities: {
-          ...prev.amenities,
-          parking: {
-            ...prev.amenities.parking,
-            [field]: value
-          }
-        }
+        [name]: type === 'checkbox' ? checked : value
       }));
-    };
-  
-    const handleImageUpload = (e) => {
-      const files = Array.from(e.target.files);
-      if (files.length > 5) {
-        setMessage("Máximo 5 imágenes permitidas");
-        return;
+    }
+  };
+
+  const handleArrayChange = (parent, field, index, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [parent]: {
+        ...prev[parent],
+        [field]: prev[parent][field].map((item, i) => i === index ? value : item)
       }
-      setFormData(prev => ({
-        ...prev,
-        images: files
-      }));
-    };
-  
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      setLoading(true);
-      setMessage("");
-  
-      try {
-        const formDataToSend = new FormData();
-        
-        // Agregar datos básicos
-        Object.keys(formData).forEach(key => {
-          if (key !== 'images' && key !== 'amenities' && key !== 'houseRules') {
-            formDataToSend.append(key, formData[key]);
-          }
-        });
-  
-        // Agregar amenities y houseRules como JSON
-        formDataToSend.append('amenities', JSON.stringify(formData.amenities));
-        formDataToSend.append('houseRules', JSON.stringify(formData.houseRules));
-  
-        // Agregar imágenes
-        formData.images.forEach((file) => {
+    }));
+  };
+
+  const addArrayItem = (parent, field) => {
+    setFormData(prev => ({
+      ...prev,
+      [parent]: {
+        ...prev[parent],
+        [field]: [...prev[parent][field], '']
+      }
+    }));
+  };
+
+  const removeArrayItem = (parent, field, index) => {
+    setFormData(prev => ({
+      ...prev,
+      [parent]: {
+        ...prev[parent],
+        [field]: prev[parent][field].filter((_, i) => i !== index)
+      }
+    }));
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+
+    const formDataToSend = new FormData();
+
+    // Agregar todos los campos al FormData
+    Object.keys(formData).forEach(key => {
+      if (key === 'images') {
+        formData.images.forEach(file => {
           formDataToSend.append('images', file);
         });
-  
-        const token = localStorage.getItem('token');
-        const response = await axios.post(
-          'http://localhost:8080/flats',
-          formDataToSend,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'multipart/form-data'
-            }
-          }
-        );
-  
-        setMessage("¡Propiedad creada exitosamente!");
-        setFormData(initialFormData);
-      } catch (error) {
-        setMessage(error.response?.data?.message || "Error al crear la propiedad");
-      } finally {
-        setLoading(false);
+      } else if (typeof formData[key] === 'object') {
+        formDataToSend.append(key, JSON.stringify(formData[key]));
+      } else {
+        formDataToSend.append(key, formData[key]);
       }
-    };
-  
-    const amenityIcons = {
-      wifi: <WifiIcon />,
-      tv: <TvIcon />,
-      kitchen: <KitchenIcon />,
-      washer: <LocalLaundryServiceIcon />,
-      airConditioning: <AcUnitIcon />,
-      heating: <HeatPumpIcon />,
-      workspace: <WorkIcon />,
-      pool: <PoolIcon />,
-      gym: <FitnessCenterIcon />,
-      elevator: <ElevatorIcon />,
-      petsAllowed: <PetsIcon />,
-    };
-  
-    const amenityLabels = {
-      wifi: "WiFi",
-      tv: "TV",
-      kitchen: "Cocina",
-      washer: "Lavadora",
-      airConditioning: "Aire acondicionado",
-      heating: "Calefacción",
-      workspace: "Zona de trabajo",
-      pool: "Piscina",
-      gym: "Gimnasio",
-      elevator: "Elevador",
-      petsAllowed: "Mascotas permitidas",
-    };
-  
-    return (
-      <PageContainer maxWidth="lg">
-        <FormPaper component="form" onSubmit={handleSubmit}>
-          <FormTitle variant="h4">Crear Nueva Propiedad</FormTitle>
-  
-          <Grid container spacing={3}>
-            {/* Información básica */}
-            <Grid item xs={12} md={6}>
-              <StyledTextField
-                fullWidth
-                required
-                label="Título"
-                name="title"
-                value={formData.title}
-                onChange={handleChange}
-              />
-            </Grid>
-  
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Tipo de Propiedad</InputLabel>
-                <Select
-                  name="propertyType"
-                  value={formData.propertyType}
+    });
+
+    try {
+      const response = await fetch('http://localhost:8080/flats', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formDataToSend
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al crear la propiedad');
+      }
+
+      setMessage('¡Propiedad creada exitosamente!');
+      setFormData(initialFormData);
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Typography variant="h4" align="center" gutterBottom sx={{ color: 'rgb(23, 165, 170)', fontWeight: 600 }}>
+          Crear Nueva Propiedad
+        </Typography>
+        
+        <form onSubmit={handleSubmit}>
+          {/* Información Básica */}
+          <FormSection>
+            <SectionTitle variant="h6">Información Básica</SectionTitle>
+            <Grid container spacing={3}>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Título"
+                  name="title"
+                  value={formData.title}
                   onChange={handleChange}
-                  label="Tipo de Propiedad"
-                >
-                  <MenuItem value="apartment">Apartamento</MenuItem>
-                  <MenuItem value="house">Casa</MenuItem>
-                  <MenuItem value="studio">Estudio</MenuItem>
-                  <MenuItem value="loft">Loft</MenuItem>
-                  <MenuItem value="room">Habitación</MenuItem>
-                </Select>
-              </FormControl>
+                  placeholder="Modern Apartment in Downtown"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  required
+                  multiline
+                  rows={4}
+                  label="Descripción"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  placeholder="Beautiful modern apartment with great views"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth required>
+                  <InputLabel>Tipo de Propiedad</InputLabel>
+                  <Select
+                    name="propertyType"
+                    value={formData.propertyType}
+                    onChange={handleChange}
+                    label="Tipo de Propiedad"
+                  >
+                    {propertyTypes.map(type => (
+                      <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  type="number"
+                  label="Precio mensual"
+                  name="rentPrice"
+                  value={formData.rentPrice}
+                  onChange={handleChange}
+                  placeholder="1200"
+                />
+              </Grid>
             </Grid>
-  
-            {/* Detalles de la propiedad */}
-            <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Detalles de la Propiedad</Typography>
+          </FormSection>
+
+          {/* Características */}
+          <FormSection>
+            <SectionTitle variant="h6">Características</SectionTitle>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  fullWidth
+                  required
+                  type="number"
+                  label="Habitaciones"
+                  name="bedrooms"
+                  value={formData.bedrooms}
+                  onChange={handleChange}
+                  placeholder="2"
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  fullWidth
+                  required
+                  type="number"
+                  label="Baños"
+                  name="bathrooms"
+                  value={formData.bathrooms}
+                  onChange={handleChange}
+                  placeholder="1"
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  fullWidth
+                  required
+                  type="number"
+                  label="Huéspedes máximos"
+                  name="maxGuests"
+                  value={formData.maxGuests}
+                  onChange={handleChange}
+                  placeholder="4"
+                />
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <TextField
+                  fullWidth
+                  required
+                  type="number"
+                  label="Tamaño (m²)"
+                  name="areaSize"
+                  value={formData.areaSize}
+                  onChange={handleChange}
+                  placeholder="85"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  type="number"
+                  label="Año construcción"
+                  name="yearBuilt"
+                  value={formData.yearBuilt}
+                  onChange={handleChange}
+                  placeholder="2020"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  type="date"
+                  label="Fecha disponible"
+                  name="dateAvailable"
+                  value={formData.dateAvailable}
+                  onChange={handleChange}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
             </Grid>
-  
-            {/* Amenities */}
-            <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Comodidades</Typography>
-              <AmenityBox>
-                <Grid container spacing={2}>
-                  {Object.keys(amenityLabels).map((amenity) => (
-                    <Grid item xs={12} sm={6} md={4} key={amenity}>
-                      <AmenityCheckbox
-                        control={
-                          <Checkbox
-                            checked={formData.amenities[amenity]}
-                            onChange={() => handleAmenityChange(amenity)}
-                            icon={amenityIcons[amenity]}
-                            checkedIcon={amenityIcons[amenity]}
-                          />
-                        }
-                        label={amenityLabels[amenity]}
-                        className={formData.amenities[amenity] ? 'Mui-checked' : ''}
-                      />
+          </FormSection>
+
+          {/* Amenidades */}
+          <FormSection>
+            <SectionTitle variant="h6">Amenidades</SectionTitle>
+            <AmenityBox>
+              <Grid container spacing={2}>
+                {amenitiesConfig.map(amenity => {
+                  const Icon = amenity.icon;
+                  return (
+                    <Grid item xs={12} sm={6} md={4} key={amenity.key}>
+                      <AmenityCard 
+                        className={formData.amenities[amenity.key] ? 'selected' : ''}
+                        onClick={() => handleChange({
+                          target: {
+                            name: `amenities.${amenity.key}`,
+                            type: 'checkbox',
+                            checked: !formData.amenities[amenity.key]
+                          }
+                        })}
+                      >
+                        <Icon sx={{ mr: 1, color: 'rgb(23, 165, 170)' }} />
+                        <Typography>{amenity.label}</Typography>
+                      </AmenityCard>
                     </Grid>
-                  ))}
-                </Grid>
-              </AmenityBox>
-            </Grid>
-  
-            {/* Parking Section */}
-            <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Estacionamiento</Typography>
-              <AmenityBox>
+                  );
+                })}
+              </Grid>
+
+              {/* Parking Section */}
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="subtitle1" gutterBottom>Estacionamiento</Typography>
                 <FormControlLabel
                   control={
                     <Checkbox
                       checked={formData.amenities.parking.available}
-                      onChange={(e) => handleParkingChange('available', e.target.checked)}
+                      onChange={handleChange}
+                      name="amenities.parking.available"
                     />
                   }
                   label="Estacionamiento disponible"
                 />
                 {formData.amenities.parking.available && (
-                  <FormControl fullWidth>
-                    <InputLabel>Tipo de estacionamiento</InputLabel>
-                    <Select
-                      value={formData.amenities.parking.type}
-                      onChange={(e) => handleParkingChange('type', e.target.value)}
-                      label="Tipo de estacionamiento"
-                    >
-                      <MenuItem value="free">Gratuito</MenuItem>
-                      <MenuItem value="paid">De pago</MenuItem>
-                      <MenuItem value="street">En la calle</MenuItem>
-                    </Select>
-                  </FormControl>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <FormControl fullWidth>
+                        <InputLabel>Tipo de estacionamiento</InputLabel>
+                        <Select
+                          name="amenities.parking.type"
+                          value={formData.amenities.parking.type}
+                          onChange={handleChange}
+                          label="Tipo de estacionamiento"
+                        >
+                          {parkingTypes.map(type => (
+                            <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Detalles del estacionamiento"
+                        name="amenities.parking.details"
+                        value={formData.amenities.parking.details}
+                        onChange={handleChange}
+                        placeholder="Free street parking available"
+                      />
+                    </Grid>
+                  </Grid>
                 )}
-              </AmenityBox>
+              </Box>
+            </AmenityBox>
+          </FormSection>
+
+          {/* House Rules */}
+          <FormSection>
+            <SectionTitle variant="h6">Reglas de la Casa</SectionTitle>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.houseRules.smokingAllowed}
+                      onChange={handleChange}
+                      name="houseRules.smokingAllowed"
+                    />
+                  }
+                  label="Permitido fumar"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.houseRules.eventsAllowed}
+                      onChange={handleChange}
+                      name="houseRules.eventsAllowed"
+                    />
+                  }
+                  label="Eventos permitidos"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="time"
+                  label="Inicio horas de silencio"
+                  name="houseRules.quietHours.start"
+                  value={formData.houseRules.quietHours.start}
+                  onChange={handleChange}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="time"
+                  label="Fin horas de silencio"
+                  name="houseRules.quietHours.end"
+                  value={formData.houseRules.quietHours.end}
+                  onChange={handleChange}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
             </Grid>
-  
-            {/* Imágenes */}
-            <Grid item xs={12}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Imágenes</Typography>
+
+            {/* Reglas adicionales */}
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>Reglas adicionales</Typography>
+              {formData.houseRules.additionalRules.map((rule, index) => (
+                <Box key={index} sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                  <TextField
+                    fullWidth
+                    label={`Regla ${index + 1}`}
+                    value={rule}
+                    onChange={(e) => {
+                      const newRules = [...formData.houseRules.additionalRules];
+                      newRules[index] = e.target.value;
+                      setFormData(prev => ({
+                        ...prev,
+                        houseRules: {
+                          ...prev.houseRules,
+                          additionalRules: newRules
+                        }
+                      }));
+                    }}
+                    placeholder="No parties"
+                  />
+                  <Button
+                    color="error"
+                    onClick={() => removeArrayItem('houseRules', 'additionalRules', index)}
+                  >
+                    <DeleteIcon />
+                  </Button>
+                </Box>
+              ))}
+              <Button
+                variant="outlined"
+                onClick={() => addArrayItem('houseRules', 'additionalRules')}
+              >
+                Agregar regla
+              </Button>
+            </Box>
+          </FormSection>
+
+          {/* Ubicación */}
+          <FormSection>
+            <SectionTitle variant="h6">Ubicación</SectionTitle>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Ciudad"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  placeholder="Barcelona"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Barrio"
+                  name="location.neighborhood"
+                  value={formData.location.neighborhood}
+                  onChange={handleChange}
+                  placeholder="Eixample"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Calle"
+                  name="streetName"
+                  value={formData.streetName}
+                  onChange={handleChange}
+                  placeholder="Carrer de València"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Número"
+                  name="streetNumber"
+                  value={formData.streetNumber}
+                  onChange={handleChange}
+                  placeholder="123"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  label="Código Postal"
+                  name="location.zipCode"
+                  value={formData.location.zipCode}
+                  onChange={handleChange}
+                  placeholder="08009"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  type="number"
+                  label="Latitud"
+                  name="location.coordinates.lat"
+                  value={formData.location.coordinates.lat}
+                  onChange={handleChange}
+                  placeholder="41.3851"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  type="number"
+                  label="Longitud"
+                  name="location.coordinates.lng"
+                  value={formData.location.coordinates.lng}
+                  onChange={handleChange}
+                  placeholder="2.1734"
+                />
+              </Grid>
+            </Grid>
+
+            {/* Transporte y lugares cercanos */}
+            <Box sx={{ mt: 3 }}>
+              <Typography variant="subtitle1" gutterBottom>Transporte público</Typography>
+              {formData.location.publicTransport.map((transport, index) => (
+                <Box key={index} sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                  <TextField
+                    fullWidth
+                    label={`Transporte ${index + 1}`}
+                    value={transport}
+                    onChange={(e) => handleArrayChange('location', 'publicTransport', index, e.target.value)}
+                    placeholder="Metro L4 - 5 min walk"
+                  />
+                  <Button
+                    color="error"
+                    onClick={() => removeArrayItem('location', 'publicTransport', index)}
+                  >
+                    <DeleteIcon />
+                  </Button>
+                </Box>
+              ))}
+              <Button
+                variant="outlined"
+                onClick={() => addArrayItem('location', 'publicTransport')}
+                sx={{ mb: 3 }}
+              >
+                Agregar transporte
+              </Button>
+
+              <Typography variant="subtitle1" gutterBottom>Lugares cercanos</Typography>
+              {formData.location.nearbyPlaces.map((place, index) => (
+                <Box key={index} sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                  <TextField
+                    fullWidth
+                    label={`Lugar ${index + 1}`}
+                    value={place}
+                    onChange={(e) => handleArrayChange('location', 'nearbyPlaces', index, e.target.value)}
+                    placeholder="Sagrada Familia - 15 min walk"
+                  />
+                  <Button
+                    color="error"
+                    onClick={() => removeArrayItem('location', 'nearbyPlaces', index)}
+                  >
+                    <DeleteIcon />
+                  </Button>
+                </Box>
+              ))}
+              <Button
+                variant="outlined"
+                onClick={() => addArrayItem('location', 'nearbyPlaces')}
+              >
+                Agregar lugar cercano
+              </Button>
+            </Box>
+          </FormSection>
+
+          {/* Disponibilidad */}
+          <FormSection>
+            <SectionTitle variant="h6">Disponibilidad</SectionTitle>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Estancia mínima (días)"
+                  name="availability.minimumStay"
+                  value={formData.availability.minimumStay}
+                  onChange={handleChange}
+                  placeholder="30"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Estancia máxima (días)"
+                  name="availability.maximumStay"
+                  value={formData.availability.maximumStay}
+                  onChange={handleChange}
+                  placeholder="365"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.availability.instantBooking}
+                      onChange={handleChange}
+                      name="availability.instantBooking"
+                    />
+                  }
+                  label="Reserva instantánea"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  type="number"
+                  label="Aviso previo (días)"
+                  name="availability.advanceNotice"
+                  value={formData.availability.advanceNotice}
+                  onChange={handleChange}
+                  placeholder="2"
+                />
+              </Grid>
+            </Grid>
+          </FormSection>
+
+          {/* Imágenes */}
+          <FormSection>
+            <SectionTitle variant="h6">Imágenes</SectionTitle>
+            <Box sx={{ textAlign: 'center' }}>
               <input
                 type="file"
                 multiple
                 accept="image/*"
-                onChange={handleImageUpload}
+                onChange={(e) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    images: Array.from(e.target.files)
+                  }));
+                }}
                 style={{ display: 'none' }}
                 id="images-input"
               />
               <label htmlFor="images-input">
                 <Button
-                  variant="outlined"
+                  variant="contained"
                   component="span"
                   startIcon={<CloudUploadIcon />}
-                  fullWidth
+                  sx={{ 
+                    backgroundColor: 'rgb(23, 165, 170)',
+                    '&:hover': {
+                      backgroundColor: 'rgb(18, 140, 145)',
+                    }
+                  }}
                 >
                   Subir Imágenes (máximo 5)
                 </Button>
               </label>
               {formData.images.length > 0 && (
-                <Typography variant="body2" sx={{ mt: 1 }}>
+                <Typography variant="body2" sx={{ mt: 2 }}>
                   {formData.images.length} imágenes seleccionadas
                 </Typography>
               )}
-            </Grid>
-  
-            {/* Submit Button */}
-            <Grid item xs={12}>
-              <SubmitButton
-                type="submit"
-                variant="contained"
-                fullWidth
-                disabled={loading}
-              >
-                {loading ? "Creando..." : "Crear Propiedad"}
-              </SubmitButton>
-            </Grid>
-  
-            {message && (
-              <Grid item xs={12}>
-                <Typography
-                  color={message.includes("exitosamente") ? "success" : "error"}
-                  align="center"
-                >
-                  {message}
-                </Typography>
-              </Grid>
-            )}
-          </Grid>
-        </FormPaper>
-      </PageContainer>
-    );
-  };
-  
-  export default CreateFlat;
+            </Box>
+          </FormSection>
+
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            variant="contained"
+            fullWidth
+            disabled={loading}
+            sx={{ 
+              mt: 3,
+              backgroundColor: 'rgb(23, 165, 170)',
+              '&:hover': {
+                backgroundColor: 'rgb(18, 140, 145)',
+              }
+            }}
+          >
+            {loading ? "Creando..." : "Crear Propiedad"}
+          </Button>
+
+          {message && (
+            <Typography
+              color={message.includes("exitosamente") ? "success.main" : "error.main"}
+              align="center"
+              sx={{ mt: 2 }}
+            >
+              {message}
+            </Typography>
+          )}
+        </form>
+      </Paper>
+    </Container>
+  );
+};
+
+export default CreateFlat;
