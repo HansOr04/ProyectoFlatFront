@@ -113,7 +113,8 @@ const amenitiesConfig = [
   { key: 'securityCameras', label: 'Cámaras de seguridad', icon: CameraIcon }
 ];const CreateFlat = () => {
   // Estados iniciales
-  const [formData, setFormData] = useState({
+
+  const initialFormData = {
     // Información básica
     title: '',
     description: '',
@@ -131,61 +132,62 @@ const amenitiesConfig = [
 
     // Amenidades
     amenities: {
-      wifi: false,
-      tv: false,
-      kitchen: false,
-      washer: false,
-      airConditioning: false,
-      heating: false,
-      workspace: false,
-      pool: false,
-      gym: false,
-      elevator: false,
-      petsAllowed: false,
-      smokeAlarm: false,
-      firstAidKit: false,
-      fireExtinguisher: false,
-      securityCameras: false,
-      parking: {
-        available: false,
-        type: 'none',
-        details: ''
-      }
+        wifi: false,
+        tv: false,
+        kitchen: false,
+        washer: false,
+        airConditioning: false,
+        heating: false,
+        workspace: false,
+        pool: false,
+        gym: false,
+        elevator: false,
+        petsAllowed: false,
+        smokeAlarm: false,
+        firstAidKit: false,
+        fireExtinguisher: false,
+        securityCameras: false,
+        parking: {
+            available: false,
+            type: 'none',
+            details: ''
+        }
     },
 
     // Reglas de la casa
     houseRules: {
-      smokingAllowed: false,
-      eventsAllowed: false,
-      quietHours: {
-        start: '22:00',
-        end: '08:00'
-      },
-      additionalRules: ['']
+        smokingAllowed: false,
+        eventsAllowed: false,
+        quietHours: {
+            start: '22:00',
+            end: '08:00'
+        },
+        additionalRules: ['']
     },
 
     // Ubicación
     location: {
-      coordinates: {
-        lat: '',
-        lng: ''
-      },
-      neighborhood: '',
-      zipCode: '',
-      publicTransport: [''],
-      nearbyPlaces: ['']
+        coordinates: {
+            lat: '',
+            lng: ''
+        },
+        neighborhood: '',
+        zipCode: '',
+        publicTransport: [''],
+        nearbyPlaces: ['']
     },
 
     // Disponibilidad
     availability: {
-      minimumStay: '',
-      maximumStay: '',
-      instantBooking: false,
-      advanceNotice: ''
+        minimumStay: '',
+        maximumStay: '',
+        instantBooking: false,
+        advanceNotice: ''
     },
 
     images: []
-  });
+};
+const [formData, setFormData] = useState(initialFormData);
 
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -287,44 +289,115 @@ const amenitiesConfig = [
 
     const formDataToSend = new FormData();
 
-    // Agregar campos al FormData
-    Object.keys(formData).forEach(key => {
-      if (key === 'images') {
-        formData.images.forEach(file => {
-          formDataToSend.append('images', file);
-        });
-      } else if (typeof formData[key] === 'object') {
-        formDataToSend.append(key, JSON.stringify(formData[key]));
-      } else {
-        formDataToSend.append(key, formData[key]);
-      }
+    // Preparar los datos básicos
+    const basicData = {
+        title: formData.title,
+        description: formData.description,
+        propertyType: formData.propertyType,
+        city: formData.city,
+        streetName: formData.streetName,
+        streetNumber: formData.streetNumber,
+        areaSize: Number(formData.areaSize),
+        yearBuilt: Number(formData.yearBuilt),
+        rentPrice: Number(formData.rentPrice),
+        dateAvailable: formData.dateAvailable,
+        bedrooms: Number(formData.bedrooms),
+        bathrooms: Number(formData.bathrooms),
+        maxGuests: Number(formData.maxGuests)
+    };
+
+    // Añadir cada campo al FormData
+    Object.entries(basicData).forEach(([key, value]) => {
+        formDataToSend.append(key, value);
+    });
+
+    // Añadir amenities como un string JSON
+    formDataToSend.append('amenities', JSON.stringify({
+        wifi: Boolean(formData.amenities.wifi),
+        tv: Boolean(formData.amenities.tv),
+        kitchen: Boolean(formData.amenities.kitchen),
+        washer: Boolean(formData.amenities.washer),
+        airConditioning: Boolean(formData.amenities.airConditioning),
+        heating: Boolean(formData.amenities.heating),
+        workspace: Boolean(formData.amenities.workspace),
+        pool: Boolean(formData.amenities.pool),
+        gym: Boolean(formData.amenities.gym),
+        elevator: Boolean(formData.amenities.elevator),
+        petsAllowed: Boolean(formData.amenities.petsAllowed),
+        smokeAlarm: Boolean(formData.amenities.smokeAlarm),
+        firstAidKit: Boolean(formData.amenities.firstAidKit),
+        fireExtinguisher: Boolean(formData.amenities.fireExtinguisher),
+        securityCameras: Boolean(formData.amenities.securityCameras),
+        parking: {
+            available: Boolean(formData.amenities.parking.available),
+            type: formData.amenities.parking.type,
+            details: formData.amenities.parking.details
+        }
+    }));
+
+    // Añadir house rules como un string JSON
+    formDataToSend.append('houseRules', JSON.stringify({
+        smokingAllowed: Boolean(formData.houseRules.smokingAllowed),
+        eventsAllowed: Boolean(formData.houseRules.eventsAllowed),
+        quietHours: {
+            start: formData.houseRules.quietHours.start,
+            end: formData.houseRules.quietHours.end
+        },
+        additionalRules: formData.houseRules.additionalRules.filter(rule => rule.trim() !== '')
+    }));
+
+    // Añadir location como un string JSON
+    formDataToSend.append('location', JSON.stringify({
+        coordinates: {
+            lat: Number(formData.location.coordinates.lat) || null,
+            lng: Number(formData.location.coordinates.lng) || null
+        },
+        neighborhood: formData.location.neighborhood,
+        zipCode: formData.location.zipCode,
+        publicTransport: formData.location.publicTransport.filter(transport => transport.trim() !== ''),
+        nearbyPlaces: formData.location.nearbyPlaces.filter(place => place.trim() !== '')
+    }));
+
+    // Añadir availability como un string JSON
+    formDataToSend.append('availability', JSON.stringify({
+        minimumStay: Number(formData.availability.minimumStay) || 1,
+        maximumStay: Number(formData.availability.maximumStay) || 365,
+        instantBooking: Boolean(formData.availability.instantBooking),
+        advanceNotice: Number(formData.availability.advanceNotice) || 1
+    }));
+
+    // Añadir imágenes
+    formData.images.forEach(file => {
+        formDataToSend.append('images', file);
     });
 
     try {
-      const response = await fetch('http://localhost:8080/flats', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formDataToSend
-      });
+        const response = await fetch('http://localhost:8080/flats', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: formDataToSend
+        });
 
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al crear la propiedad');
-      }
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.message || 'Error al crear la propiedad');
+        }
 
-      setMessage('¡Propiedad creada exitosamente!');
-      setFormData(initialFormData);
-      setImagePreviews([]);
+        setMessage('¡Propiedad creada exitosamente!');
+        setFormData(initialFormData);
+        setImagePreviews([]);
     } catch (error) {
-      setMessage(error.message);
+        console.error('Error completo:', error);
+        setMessage(error.message);
     } finally {
-      setLoading(false);
+        setLoading(false);
+        // Justo antes del fetch
+console.log('Datos a enviar:', Object.fromEntries(formDataToSend.entries()));
     }
-  };
-
+};
   // Cleanup effect
   useEffect(() => {
     return () => {

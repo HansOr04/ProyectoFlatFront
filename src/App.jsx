@@ -10,6 +10,7 @@ import EditApartment from './pages/EditAparment.jsx';
 import CreateFlat from './pages/CreateFlat.jsx';  // Importamos el nuevo componente
 import ProtectedRoute from './components/security/ProtectRoute.jsx';
 import { Navigate } from 'react-router-dom';
+import ProfileUpdate from './pages/ProfileUpdate.jsx';
 
 
 const NotFound = () => (
@@ -55,7 +56,11 @@ function App() {
               <AllFlats />
             </ProtectedRoute>
           } />
-          
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <ProfileUpdate/>
+            </ProtectedRoute>
+          } />
           <Route path="/flats/:id" element={
             <ProtectedRoute>
               <DetailsFlatPage />
