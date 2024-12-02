@@ -7,6 +7,7 @@ import axios from "axios";
 const LoginRegisterPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
 
   const toggleForm = () => {
@@ -75,7 +76,9 @@ const LoginRegisterPage = () => {
             mb: 4,
             color: "primary.main",
           }}>
-            {isLogin ? "Welcome Back" : "Create Account"}
+            {showForgotPassword 
+              ? "Reset Password"
+              : (isLogin ? "Welcome Back" : "Create Account")}
           </Typography>
 
           {error && (
@@ -86,39 +89,53 @@ const LoginRegisterPage = () => {
 
           <AnimatePresence mode="wait">
             <motion.div
-              key={isLogin ? "login" : "register"}
+              key={showForgotPassword ? "forgot" : (isLogin ? "login" : "register")}
               initial={{ opacity: 0, x: isLogin ? -100 : 100 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: isLogin ? 100 : -100 }}
               transition={{ duration: 0.3 }}
               style={{ width: "100%" }}
             >
-              {isLogin ? (
-                <Login setError={setError} navigate={navigate} />
+              {showForgotPassword ? (
+                <ForgotPassword 
+                  setError={setError} 
+                  onClose={() => setShowForgotPassword(false)} 
+                />
+              ) : isLogin ? (
+                <Login 
+                  setError={setError} 
+                  navigate={navigate} 
+                  setShowForgotPassword={setShowForgotPassword}
+                />
               ) : (
-                <Register setError={setError} navigate={navigate} />
+                <Register 
+                  setError={setError} 
+                  navigate={navigate} 
+                />
               )}
             </motion.div>
           </AnimatePresence>
 
-          <Box sx={{ mt: 2, textAlign: "center" }}>
-            <Typography variant="body2" sx={{ mb: 1 }}>
-              {isLogin ? "Don't have an account?" : "Already have an account?"}
-            </Typography>
-            <Button onClick={toggleForm} sx={{
-              textTransform: "none",
-              fontWeight: "bold",
-            }}>
-              {isLogin ? "Sign up" : "Sign in"}
-            </Button>
-          </Box>
+          {!showForgotPassword && (
+            <Box sx={{ mt: 2, textAlign: "center" }}>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                {isLogin ? "Don't have an account?" : "Already have an account?"}
+              </Typography>
+              <Button onClick={toggleForm} sx={{
+                textTransform: "none",
+                fontWeight: "bold",
+              }}>
+                {isLogin ? "Sign up" : "Sign in"}
+              </Button>
+            </Box>
+          )}
         </Box>
       </Box>
     </Container>
   );
 };
 
-const Login = ({ setError, navigate }) => {
+const Login = ({ setError, navigate, setShowForgotPassword }) => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -215,6 +232,101 @@ const Login = ({ setError, navigate }) => {
       >
         Sign in
       </Button>
+      
+      <Button
+        onClick={() => setShowForgotPassword(true)}
+        sx={{
+          mt: 1,
+          textTransform: "none",
+          color: "text.secondary"
+        }}
+      >
+        Forgot your password?
+      </Button>
+    </Box>
+  );
+};
+
+const ForgotPassword = ({ setError, onClose }) => {
+  const [email, setEmail] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      const response = await axios.post('http://localhost:8080/auth/forgot-password', { email });
+      
+      if (response.data.success) {
+        setSuccessMessage("Password reset link has been sent to your email");
+        setTimeout(() => {
+          onClose();
+        }, 3000);
+      }
+    } catch (error) {
+      setError(error.response?.data?.message || "Error sending reset link");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%" }}>
+      <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
+        Enter your email address and we'll send you a link to reset your password.
+      </Typography>
+
+      <TextField
+        margin="normal"
+        required
+        fullWidth
+        id="email"
+        label="Email Address"
+        name="email"
+        autoComplete="email"
+        autoFocus
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        disabled={loading}
+        sx={{ mb: 2 }}
+      />
+
+      {successMessage && (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {successMessage}
+        </Alert>
+      )}
+
+      <Button
+        type="submit"
+        fullWidth
+        variant="contained"
+        disabled={loading}
+        sx={{
+          mt: 2,
+          py: 1.5,
+          textTransform: "none",
+          fontWeight: "bold",
+          bgcolor: "#4E9DE0",
+        }}
+      >
+        {loading ? "Sending..." : "Send Reset Link"}
+      </Button>
+      
+      <Button
+        onClick={onClose}
+        fullWidth
+        sx={{
+          mt: 1,
+          textTransform: "none",
+        }}
+      >
+        Back to Login
+      </Button>
     </Box>
   );
 };
@@ -236,25 +348,42 @@ const Register = ({ setError, navigate }) => {
   const validate = () => {
     const newErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
     const age = new Date().getFullYear() - new Date(formData.birthDate).getFullYear();
 
-    if (!emailRegex.test(formData.email)) {
-      newErrors.email = "Invalid email address";
-    }
-    if (formData.firstName.length < 2) {
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = "First name is required";
+    } else if (formData.firstName.length < 2) {
       newErrors.firstName = "First name must be at least 2 characters";
     }
-    if (formData.lastName.length < 2) {
+
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = "Last name is required";
+    } else if (formData.lastName.length < 2) {
       newErrors.lastName = "Last name must be at least 2 characters";
     }
-    if (age < 18 || age > 120) {
+
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+    } else if (!emailRegex.test(formData.email)) {
+      newErrors.email = "Invalid email address";
+    }
+
+    if (!formData.birthDate) {
+      newErrors.birthDate = "Birth date is required";
+    } else if (age < 18 || age > 120) {
       newErrors.birthDate = "Age must be between 18 and 120 years";
     }
-    if (!passwordRegex.test(formData.password)) {
-      newErrors.password = "Password must be at least 6 characters with at least one letter, one number and one special character";
+
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (!passwordRegex.test(formData.password)) {
+      newErrors.password = "Password must be at least 6 characters with at least one uppercase letter, one lowercase letter, one number and one special character";
     }
-    if (formData.password !== formData.confirmPassword) {
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Please confirm your password";
+    } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
 
@@ -304,9 +433,9 @@ const Register = ({ setError, navigate }) => {
 
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append('firstName', formData.firstName);
-      formDataToSend.append('lastName', formData.lastName);
-      formDataToSend.append('email', formData.email);
+      formDataToSend.append('firstName', formData.firstName.trim());
+      formDataToSend.append('lastName', formData.lastName.trim());
+      formDataToSend.append('email', formData.email.trim());
       formDataToSend.append('password', formData.password);
       formDataToSend.append('birthDate', formData.birthDate);
       if (formData.profileImage) {
@@ -417,6 +546,7 @@ const Register = ({ setError, navigate }) => {
         helperText={errors.email}
         sx={{ mb: 2 }}
       />
+
       <TextField
         required
         fullWidth
@@ -431,6 +561,7 @@ const Register = ({ setError, navigate }) => {
         helperText={errors.password}
         sx={{ mb: 2 }}
       />
+
       <TextField
         required
         fullWidth
@@ -445,6 +576,7 @@ const Register = ({ setError, navigate }) => {
         helperText={errors.confirmPassword}
         sx={{ mb: 2 }}
       />
+
       <TextField
         required
         fullWidth
@@ -461,6 +593,7 @@ const Register = ({ setError, navigate }) => {
         helperText={errors.birthDate}
         sx={{ mb: 3 }}
       />
+
       <Button
         type="submit"
         fullWidth

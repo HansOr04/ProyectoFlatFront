@@ -394,8 +394,6 @@ const [formData, setFormData] = useState(initialFormData);
         setMessage(error.message);
     } finally {
         setLoading(false);
-        // Justo antes del fetch
-console.log('Datos a enviar:', Object.fromEntries(formDataToSend.entries()));
     }
 };
   // Cleanup effect
