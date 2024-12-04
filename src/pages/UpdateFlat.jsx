@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -16,12 +17,17 @@ import {
   ImageList,
   ImageListItem,
   IconButton,
+  CircularProgress,
+  Alert,
+  Snackbar
 } from '@mui/material';
 import styled from 'styled-components';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import DeleteIcon from '@mui/icons-material/Delete';
-import CancelIcon from '@mui/icons-material/Cancel';
 import {
+  CloudUpload as CloudUploadIcon,
+  Delete as DeleteIcon,
+  Cancel as CancelIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
   Wifi as WifiIcon,
   Tv as TvIcon,
   Kitchen as KitchenIcon,
@@ -79,7 +85,6 @@ const AmenityCard = styled(Box)`
     border-color: rgb(23, 165, 170);
   }
 `;
-
 // Configuraciones
 const propertyTypes = [
   { value: 'apartment', label: 'Apartamento' },
@@ -92,7 +97,8 @@ const propertyTypes = [
 const parkingTypes = [
   { value: 'free', label: 'Gratuito' },
   { value: 'paid', label: 'De pago' },
-  { value: 'street', label: 'En la calle' }
+  { value: 'street', label: 'En la calle' },
+  { value: 'none', label: 'Ninguno' }
 ];
 
 const amenitiesConfig = [
@@ -111,97 +117,214 @@ const amenitiesConfig = [
   { key: 'firstAidKit', label: 'Botiquín', icon: FirstAidIcon },
   { key: 'fireExtinguisher', label: 'Extintor', icon: FireExtinguisherIcon },
   { key: 'securityCameras', label: 'Cámaras de seguridad', icon: CameraIcon }
-];const CreateFlat = () => {
-  // Estados iniciales
+];
 
-  const initialFormData = {
-    // Información básica
-    title: '',
-    description: '',
-    propertyType: '',
-    city: '',
-    streetName: '',
-    streetNumber: '',
-    areaSize: '',
-    yearBuilt: '',
-    rentPrice: '',
-    dateAvailable: '',
-    bedrooms: '',
-    bathrooms: '',
-    maxGuests: '',
+const initialFormData = {
+  // Información básica
+  title: '',
+  description: '',
+  propertyType: '',
+  city: '',
+  streetName: '',
+  streetNumber: '',
+  areaSize: '',
+  yearBuilt: '',
+  rentPrice: '',
+  dateAvailable: '',
+  bedrooms: '',
+  bathrooms: '',
+  maxGuests: '',
 
-    // Amenidades
-    amenities: {
-        wifi: false,
-        tv: false,
-        kitchen: false,
-        washer: false,
-        airConditioning: false,
-        heating: false,
-        workspace: false,
-        pool: false,
-        gym: false,
-        elevator: false,
-        petsAllowed: false,
-        smokeAlarm: false,
-        firstAidKit: false,
-        fireExtinguisher: false,
-        securityCameras: false,
-        parking: {
-            available: false,
-            type: 'none',
-            details: ''
-        }
+  // Amenidades
+  amenities: {
+    wifi: false,
+    tv: false,
+    kitchen: false,
+    washer: false,
+    airConditioning: false,
+    heating: false,
+    workspace: false,
+    pool: false,
+    gym: false,
+    elevator: false,
+    petsAllowed: false,
+    smokeAlarm: false,
+    firstAidKit: false,
+    fireExtinguisher: false,
+    securityCameras: false,
+    parking: {
+      available: false,
+      type: 'none',
+      details: ''
+    }
+  },
+
+  // Reglas de la casa
+  houseRules: {
+    smokingAllowed: false,
+    eventsAllowed: false,
+    quietHours: {
+      start: '22:00',
+      end: '08:00'
     },
+    additionalRules: ['']
+  },
 
-    // Reglas de la casa
-    houseRules: {
-        smokingAllowed: false,
-        eventsAllowed: false,
-        quietHours: {
-            start: '22:00',
-            end: '08:00'
-        },
-        additionalRules: ['']
+  // Ubicación
+  location: {
+    coordinates: {
+      lat: '',
+      lng: ''
     },
+    neighborhood: '',
+    zipCode: '',
+    publicTransport: [''],
+    nearbyPlaces: ['']
+  },
 
-    // Ubicación
-    location: {
-        coordinates: {
-            lat: '',
-            lng: ''
-        },
-        neighborhood: '',
-        zipCode: '',
-        publicTransport: [''],
-        nearbyPlaces: ['']
-    },
+  // Disponibilidad
+  availability: {
+    minimumStay: '',
+    maximumStay: '',
+    instantBooking: false,
+    advanceNotice: ''
+  },
 
-    // Disponibilidad
-    availability: {
-        minimumStay: '',
-        maximumStay: '',
-        instantBooking: false,
-        advanceNotice: ''
-    },
-
-    images: []
+  images: []
 };
-const [formData, setFormData] = useState(initialFormData);
+const UpdateFlat = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
 
-  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState(initialFormData);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [existingImages, setExistingImages] = useState([]);
+  const [imagesToDelete, setImagesToDelete] = useState([]);
 
-  // Event Handlers
+  useEffect(() => {
+    const fetchFlatData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:8080/flats/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('No se pudo cargar la información del flat');
+        }
+
+        const responseData = await response.json();
+        if (responseData.success) {
+          const flatData = responseData.data;
+
+          // Formatear la fecha para el input type="date"
+          const formattedDate = flatData.dateAvailable 
+            ? new Date(flatData.dateAvailable).toISOString().split('T')[0] 
+            : '';
+
+          // Asegurarse de que todas las propiedades booleanas de amenities estén definidas
+          const amenities = {
+            ...initialFormData.amenities,
+            ...flatData.amenities,
+            parking: {
+              ...initialFormData.amenities.parking,
+              ...flatData.amenities?.parking
+            }
+          };
+
+          // Asegurarse de que todas las reglas de la casa estén definidas
+          const houseRules = {
+            ...initialFormData.houseRules,
+            ...flatData.houseRules,
+            quietHours: {
+              ...initialFormData.houseRules.quietHours,
+              ...flatData.houseRules?.quietHours
+            },
+            additionalRules: flatData.houseRules?.additionalRules || ['']
+          };
+
+          // Asegurarse de que toda la información de ubicación esté definida
+          const location = {
+            ...initialFormData.location,
+            ...flatData.location,
+            coordinates: {
+              ...initialFormData.location.coordinates,
+              ...flatData.location?.coordinates
+            },
+            publicTransport: flatData.location?.publicTransport || [''],
+            nearbyPlaces: flatData.location?.nearbyPlaces || ['']
+          };
+
+          setFormData({
+            title: flatData.title || '',
+            description: flatData.description || '',
+            propertyType: flatData.propertyType || '',
+            city: flatData.city || '',
+            streetName: flatData.streetName || '',
+            streetNumber: flatData.streetNumber || '',
+            areaSize: flatData.areaSize?.toString() || '',
+            yearBuilt: flatData.yearBuilt?.toString() || '',
+            rentPrice: flatData.rentPrice?.toString() || '',
+            dateAvailable: formattedDate,
+            bedrooms: flatData.bedrooms?.toString() || '',
+            bathrooms: flatData.bathrooms?.toString() || '',
+            maxGuests: flatData.maxGuests?.toString() || '',
+            amenities,
+            houseRules,
+            location,
+            availability: {
+              ...initialFormData.availability,
+              ...flatData.availability
+            }
+          });
+
+          // Establecer las imágenes existentes
+          if (flatData.images && flatData.images.length > 0) {
+            setExistingImages(flatData.images);
+          }
+        }
+      } catch (error) {
+        setMessage('Error al cargar la propiedad: ' + error.message);
+        console.error('Error fetching flat:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFlatData();
+  }, [id]);
+
+  // Cleanup de las previsualizaciones de imágenes
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach(preview => URL.revokeObjectURL(preview.url));
+    };
+  }, [imagePreviews]);
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+        <CircularProgress sx={{ color: 'rgb(23, 165, 170)' }} />
+      </Box>
+    );
+  }
+  
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     if (name.includes('.')) {
       const parts = name.split('.');
       setFormData(prev => {
-        let newData = { ...prev };
+        const newData = { ...prev };
         let current = newData;
         for (let i = 0; i < parts.length - 1; i++) {
+          if (!current[parts[i]]) {
+            current[parts[i]] = {};
+          }
           current = current[parts[i]];
         }
         current[parts[parts.length - 1]] = type === 'checkbox' ? checked : value;
@@ -247,134 +370,180 @@ const [formData, setFormData] = useState(initialFormData);
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    if (files.length > 5) {
+    const totalImages = existingImages.length + files.length - imagesToDelete.length;
+    
+    if (totalImages > 5) {
       setMessage("Máximo 5 imágenes permitidas");
       return;
     }
 
-    setFormData(prev => ({
-      ...prev,
-      images: files
-    }));
-
-    // Crear las previsualizaciones
     const previews = files.map(file => ({
       url: URL.createObjectURL(file),
-      name: file.name
+      name: file.name,
+      file
     }));
-    
-    // Limpiar las URLs anteriores
-    imagePreviews.forEach(preview => URL.revokeObjectURL(preview.url));
-    
-    setImagePreviews(previews);
-  };
 
-  const removeImage = (index) => {
-    const newImages = formData.images.filter((_, i) => i !== index);
-    const newPreviews = imagePreviews.filter((_, i) => i !== index);
-    
-    URL.revokeObjectURL(imagePreviews[index].url);
-    
     setFormData(prev => ({
       ...prev,
-      images: newImages
+      images: [...prev.images, ...files]
     }));
-    setImagePreviews(newPreviews);
+    
+    setImagePreviews(prev => [...prev, ...previews]);
   };
 
+  const removeExistingImage = (imageId) => {
+    setExistingImages(prev => prev.filter(img => img._id !== imageId));
+    setImagesToDelete(prev => [...prev, imageId]);
+  };
+
+  const removeNewImage = (index) => {
+    URL.revokeObjectURL(imagePreviews[index].url);
+    
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleCancel = () => {
+    imagePreviews.forEach(preview => URL.revokeObjectURL(preview.url));
+    navigate(-1);
+  };
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
     setMessage('');
 
     try {
-        // Crear un objeto con todos los datos excepto las imágenes
-        const flatData = {
-            // Información básica
-            title: formData.title,
-            description: formData.description,
-            propertyType: formData.propertyType,
-            city: formData.city,
-            streetName: formData.streetName,
-            streetNumber: formData.streetNumber,
-            areaSize: Number(formData.areaSize),
-            yearBuilt: Number(formData.yearBuilt),
-            rentPrice: Number(formData.rentPrice),
-            dateAvailable: formData.dateAvailable,
-            bedrooms: Number(formData.bedrooms),
-            bathrooms: Number(formData.bathrooms),
-            maxGuests: Number(formData.maxGuests),
+      const token = localStorage.getItem('token');
+      const formDataToSend = new FormData();
 
-            // Amenidades (copiar el objeto completo)
-            amenities: formData.amenities,
+      // Preparar los datos básicos
+      const basicData = {
+        title: formData.title,
+        description: formData.description,
+        propertyType: formData.propertyType,
+        city: formData.city,
+        streetName: formData.streetName,
+        streetNumber: formData.streetNumber,
+        areaSize: Number(formData.areaSize),
+        yearBuilt: Number(formData.yearBuilt),
+        rentPrice: Number(formData.rentPrice),
+        dateAvailable: formData.dateAvailable,
+        bedrooms: Number(formData.bedrooms),
+        bathrooms: Number(formData.bathrooms),
+        maxGuests: Number(formData.maxGuests)
+      };
 
-            // Reglas de la casa
-            houseRules: formData.houseRules,
-
-            // Ubicación
-            location: formData.location,
-
-            // Disponibilidad
-            availability: {
-                minimumStay: Number(formData.availability.minimumStay) || 1,
-                maximumStay: Number(formData.availability.maximumStay) || 365,
-                instantBooking: formData.availability.instantBooking,
-                advanceNotice: Number(formData.availability.advanceNotice) || 1
-            }
-        };
-
-        const formDataToSend = new FormData();
-
-        // Añadir las imágenes
-        formData.images.forEach(file => {
-            formDataToSend.append('images', file);
-        });
-
-        // Añadir el resto de datos como un JSON string
-        Object.keys(flatData).forEach(key => {
-            formDataToSend.append(key, 
-                typeof flatData[key] === 'object' 
-                    ? JSON.stringify(flatData[key]) 
-                    : flatData[key]
-            );
-        });
-
-        const response = await fetch('http://localhost:8080/flats', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: formDataToSend
-        });
-
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.message || 'Error al crear la propiedad');
+      // Añadir cada campo al FormData
+      Object.entries(basicData).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          formDataToSend.append(key, value);
         }
+      });
 
-        setMessage('¡Propiedad creada exitosamente!');
-        setFormData(initialFormData);
-        setImagePreviews([]);
+      // Añadir amenities
+      formDataToSend.append('amenities', JSON.stringify({
+        wifi: Boolean(formData.amenities.wifi),
+        tv: Boolean(formData.amenities.tv),
+        kitchen: Boolean(formData.amenities.kitchen),
+        washer: Boolean(formData.amenities.washer),
+        airConditioning: Boolean(formData.amenities.airConditioning),
+        heating: Boolean(formData.amenities.heating),
+        workspace: Boolean(formData.amenities.workspace),
+        pool: Boolean(formData.amenities.pool),
+        gym: Boolean(formData.amenities.gym),
+        elevator: Boolean(formData.amenities.elevator),
+        petsAllowed: Boolean(formData.amenities.petsAllowed),
+        smokeAlarm: Boolean(formData.amenities.smokeAlarm),
+        firstAidKit: Boolean(formData.amenities.firstAidKit),
+        fireExtinguisher: Boolean(formData.amenities.fireExtinguisher),
+        securityCameras: Boolean(formData.amenities.securityCameras),
+        parking: {
+          available: Boolean(formData.amenities.parking.available),
+          type: formData.amenities.parking.type,
+          details: formData.amenities.parking.details
+        }
+      }));
+
+      // Añadir house rules
+      formDataToSend.append('houseRules', JSON.stringify({
+        smokingAllowed: Boolean(formData.houseRules.smokingAllowed),
+        eventsAllowed: Boolean(formData.houseRules.eventsAllowed),
+        quietHours: {
+          start: formData.houseRules.quietHours.start,
+          end: formData.houseRules.quietHours.end
+        },
+        additionalRules: formData.houseRules.additionalRules.filter(rule => rule.trim() !== '')
+      }));
+
+      // Añadir location
+      formDataToSend.append('location', JSON.stringify({
+        coordinates: {
+          lat: Number(formData.location.coordinates.lat) || null,
+          lng: Number(formData.location.coordinates.lng) || null
+        },
+        neighborhood: formData.location.neighborhood,
+        zipCode: formData.location.zipCode,
+        publicTransport: formData.location.publicTransport.filter(transport => transport.trim() !== ''),
+        nearbyPlaces: formData.location.nearbyPlaces.filter(place => place.trim() !== '')
+      }));
+
+      // Añadir availability
+      formDataToSend.append('availability', JSON.stringify({
+        minimumStay: Number(formData.availability.minimumStay) || 1,
+        maximumStay: Number(formData.availability.maximumStay) || 365,
+        instantBooking: Boolean(formData.availability.instantBooking),
+        advanceNotice: Number(formData.availability.advanceNotice) || 1
+      }));
+
+      // Añadir imágenes nuevas
+      if (formData.images && formData.images.length > 0) {
+        formData.images.forEach(file => {
+          formDataToSend.append('images', file);
+        });
+      }
+    
+      // Añadir IDs de imágenes a eliminar solo si existen
+      if (imagesToDelete && imagesToDelete.length > 0) {
+        formDataToSend.append('imagesToDelete', JSON.stringify(imagesToDelete));
+      }
+
+      // Enviar la actualización
+      const response = await fetch(`http://localhost:8080/flats/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formDataToSend
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al actualizar la propiedad');
+      }
+
+      setMessage('¡Propiedad actualizada exitosamente!');
+      
+      // Redirigir después de un breve delay
+      setTimeout(() => {
+        navigate(`/flats/${id}`);
+      }, 2000);
+
     } catch (error) {
-        console.error('Error completo:', error);
-        setMessage(error.message);
+      console.error('Error completo:', error);
+      setMessage(error.message || 'Error al actualizar la propiedad');
     } finally {
-        setLoading(false);
+      setSubmitting(false);
     }
-};
-
-  // Cleanup effect
-  useEffect(() => {
-    return () => {
-      imagePreviews.forEach(preview => URL.revokeObjectURL(preview.url));
-    };
-  }, []);
+  };
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
         <Typography variant="h4" align="center" gutterBottom sx={{ color: 'rgb(23, 165, 170)', fontWeight: 600 }}>
-          Crear Nueva Propiedad
+          Actualizar Propiedad
         </Typography>
         
         <form onSubmit={handleSubmit}>
@@ -433,6 +602,30 @@ const [formData, setFormData] = useState(initialFormData);
                   placeholder="1200"
                 />
               </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  type="number"
+                  label="Año construcción"
+                  name="yearBuilt"
+                  value={formData.yearBuilt}
+                  onChange={handleChange}
+                  placeholder="2020"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  required
+                  type="date"
+                  label="Fecha disponible"
+                  name="dateAvailable"
+                  value={formData.dateAvailable}
+                  onChange={handleChange}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
             </Grid>
           </FormSection>
 
@@ -486,30 +679,6 @@ const [formData, setFormData] = useState(initialFormData);
                   value={formData.areaSize}
                   onChange={handleChange}
                   placeholder="85"
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  required
-                  type="number"
-                  label="Año construcción"
-                  name="yearBuilt"
-                  value={formData.yearBuilt}
-                  onChange={handleChange}
-                  placeholder="2020"
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  required
-                  type="date"
-                  label="Fecha disponible"
-                  name="dateAvailable"
-                  value={formData.dateAvailable}
-                  onChange={handleChange}
-                  InputLabelProps={{ shrink: true }}
                 />
               </Grid>
             </Grid>
@@ -583,7 +752,7 @@ const [formData, setFormData] = useState(initialFormData);
                           name="amenities.parking.details"
                           value={formData.amenities.parking.details}
                           onChange={handleChange}
-                          placeholder="Free street parking available"
+                          placeholder="Detalles del estacionamiento"
                         />
                       </Grid>
                     </>
@@ -654,7 +823,7 @@ const [formData, setFormData] = useState(initialFormData);
                       label={`Regla ${index + 1}`}
                       value={rule}
                       onChange={(e) => handleArrayChange('houseRules', 'additionalRules', index, e.target.value)}
-                      placeholder="No parties"
+                      placeholder="Regla adicional"
                     />
                     <Button
                       color="error"
@@ -667,14 +836,21 @@ const [formData, setFormData] = useState(initialFormData);
                 <Button
                   variant="outlined"
                   onClick={() => addArrayItem('houseRules', 'additionalRules')}
-                  sx={{ mb: 2 }}
+                  sx={{ 
+                    mb: 2,
+                    color: 'rgb(23, 165, 170)',
+                    borderColor: 'rgb(23, 165, 170)',
+                    '&:hover': {
+                      borderColor: '#1FD1D7',
+                      backgroundColor: 'rgba(31, 209, 215, 0.1)'
+                    }
+                  }}
                 >
                   Agregar regla
                 </Button>
               </Grid>
             </Grid>
           </FormSection>
-
           {/* Ubicación y Transporte */}
           <FormSection>
             <SectionTitle variant="h6">Ubicación y Transporte</SectionTitle>
@@ -777,7 +953,15 @@ const [formData, setFormData] = useState(initialFormData);
                 <Button
                   variant="outlined"
                   onClick={() => addArrayItem('location', 'publicTransport')}
-                  sx={{ mb: 2 }}
+                  sx={{ 
+                    mb: 2,
+                    color: 'rgb(23, 165, 170)',
+                    borderColor: 'rgb(23, 165, 170)',
+                    '&:hover': {
+                      borderColor: '#1FD1D7',
+                      backgroundColor: 'rgba(31, 209, 215, 0.1)'
+                    }
+                  }}
                 >
                   Agregar transporte
                 </Button>
@@ -806,6 +990,14 @@ const [formData, setFormData] = useState(initialFormData);
                 <Button
                   variant="outlined"
                   onClick={() => addArrayItem('location', 'nearbyPlaces')}
+                  sx={{ 
+                    color: 'rgb(23, 165, 170)',
+                    borderColor: 'rgb(23, 165, 170)',
+                    '&:hover': {
+                      borderColor: '#1FD1D7',
+                      backgroundColor: 'rgba(31, 209, 215, 0.1)'
+                    }
+                  }}
                 >
                   Agregar lugar cercano
                 </Button>
@@ -868,6 +1060,62 @@ const [formData, setFormData] = useState(initialFormData);
           {/* Imágenes */}
           <FormSection>
             <SectionTitle variant="h6">Imágenes</SectionTitle>
+            
+            {/* Imágenes Existentes */}
+            {existingImages.length > 0 && (
+              <Box sx={{ mb: 4 }}>
+                <Typography variant="subtitle1" gutterBottom>Imágenes actuales</Typography>
+                <ImageList sx={{ width: '100%' }} cols={3} gap={8}>
+                  {existingImages.map((image) => (
+                    <ImageListItem key={image._id} sx={{ position: 'relative' }}>
+                      <img
+                        src={image.url}
+                        alt={image.description || 'Property image'}
+                        loading="lazy"
+                        style={{ 
+                          height: '200px',
+                          width: '100%',
+                          objectFit: 'cover',
+                          borderRadius: '8px'
+                        }}
+                      />
+                      <IconButton
+                        onClick={() => removeExistingImage(image._id)}
+                        sx={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          bgcolor: 'rgba(255, 255, 255, 0.8)',
+                          '&:hover': {
+                            bgcolor: 'rgba(255, 255, 255, 0.9)'
+                          }
+                        }}
+                      >
+                        <DeleteIcon sx={{ color: '#d32f2f' }} />
+                      </IconButton>
+                      {image.isMainImage && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            bottom: 8,
+                            left: 8,
+                            bgcolor: 'rgba(23, 165, 170, 0.8)',
+                            color: 'white',
+                            padding: '4px 8px',
+                            borderRadius: '4px',
+                            fontSize: '0.75rem'
+                          }}
+                        >
+                          Imagen Principal
+                        </Box>
+                      )}
+                    </ImageListItem>
+                  ))}
+                </ImageList>
+              </Box>
+            )}
+
+            {/* Subir Nuevas Imágenes */}
             <Box sx={{ textAlign: 'center' }}>
               <input
                 type="file"
@@ -883,29 +1131,24 @@ const [formData, setFormData] = useState(initialFormData);
                   component="span"
                   startIcon={<CloudUploadIcon />}
                   sx={{ 
-                    backgroundColor: 'rgb(23, 165, 170)',
+                    bgcolor: 'rgb(23, 165, 170)',
                     '&:hover': {
-                      backgroundColor: 'rgb(18, 140, 145)',
+                      bgcolor: 'rgb(18, 140, 145)'
                     }
                   }}
                 >
-                  Subir Imágenes (máximo 5)
+                  Agregar Nuevas Imágenes
                 </Button>
               </label>
-              
+
               {imagePreviews.length > 0 && (
                 <Box sx={{ mt: 3 }}>
-                  <ImageList sx={{ width: '100%', height: 'auto' }} cols={3} gap={8}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Nuevas imágenes a agregar:
+                  </Typography>
+                  <ImageList sx={{ width: '100%' }} cols={3} gap={8}>
                     {imagePreviews.map((preview, index) => (
-                      <ImageListItem 
-                        key={index}
-                        sx={{ 
-                          position: 'relative',
-                          '&:hover .deleteButton': {
-                            opacity: 1
-                          }
-                        }}
-                      >
+                      <ImageListItem key={index} sx={{ position: 'relative' }}>
                         <img
                           src={preview.url}
                           alt={preview.name}
@@ -918,100 +1161,107 @@ const [formData, setFormData] = useState(initialFormData);
                           }}
                         />
                         <IconButton
-                          className="deleteButton"
-                          onClick={() => removeImage(index)}
+                          onClick={() => removeNewImage(index)}
                           sx={{
                             position: 'absolute',
-                            top: 5,
-                            right: 5,
-                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                            opacity: 0,
-                            transition: 'opacity 0.3s',
+                            top: 8,
+                            right: 8,
+                            bgcolor: 'rgba(255, 255, 255, 0.8)',
                             '&:hover': {
-                              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                              bgcolor: 'rgba(255, 255, 255, 0.9)'
                             }
                           }}
                         >
-                          <CancelIcon sx={{ color: 'rgb(23, 165, 170)' }} />
+                          <DeleteIcon sx={{ color: '#d32f2f' }} />
                         </IconButton>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                            color: 'white',
-                            padding: '4px',
-                            textAlign: 'center',
-                            borderBottomLeftRadius: '8px',
-                            borderBottomRightRadius: '8px',
-                          }}
-                        >
-                          {preview.name}
-                        </Typography>
                       </ImageListItem>
                     ))}
                   </ImageList>
                 </Box>
               )}
-              
-              <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
-                {imagePreviews.length > 0 
-                  ? `${imagePreviews.length} ${imagePreviews.length === 1 ? 'imagen seleccionada' : 'imágenes seleccionadas'}`
-                  : 'No hay imágenes seleccionadas'
-                }
-              </Typography>
             </Box>
           </FormSection>
 
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-            disabled={loading}
-            sx={{ 
-              mt: 3,
-              backgroundColor: 'rgb(23, 165, 170)',
-              '&:hover': {
-                backgroundColor: 'rgb(18, 140, 145)',
-              },
-              height: '50px',
-              fontSize: '1.1rem',
-              fontWeight: 'bold'
-            }}
-          >
-            {loading ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                Creando propiedad...
-              </Box>
-            ) : (
-              "Crear Propiedad"
-            )}
-          </Button>
-
-          {message && (
-            <Typography
-              color={message.includes("exitosamente") ? "success.main" : "error.main"}
-              align="center"
+          {/* Botones de Acción */}
+          <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={handleCancel}
+              disabled={submitting}
               sx={{ 
-                mt: 2,
-                p: 2,
-                borderRadius: 1,
-                backgroundColor: message.includes("exitosamente") 
-                  ? 'rgba(76, 175, 80, 0.1)' 
-                  : 'rgba(244, 67, 54, 0.1)'
+                width: 200,
+                color: '#0E3F33',
+                borderColor: '#0E3F33',
+                '&:hover': {
+                  borderColor: 'rgb(23, 165, 170)',
+                  backgroundColor: 'rgba(23, 165, 170, 0.1)'
+                }
               }}
             >
-              {message}
-            </Typography>
+              Cancelar
+            </Button>
+
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={submitting}
+              sx={{ 
+                width: 200,
+                bgcolor: 'rgb(23, 165, 170)',
+                '&:hover': {
+                  bgcolor: 'rgb(18, 140, 145)'
+                }
+              }}
+            >
+              {submitting ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={20} sx={{ color: 'white' }} />
+                  <span>Actualizando...</span>
+                </Box>
+              ) : (
+                "Actualizar Propiedad"
+              )}
+            </Button>
+          </Box>
+
+          {/* Mensaje de estado */}
+          {message && (
+            <Box
+              sx={{
+                mt: 3,
+                p: 2,
+                borderRadius: 1,
+                backgroundColor: message.includes('exitosamente') 
+                  ? 'rgba(23, 165, 170, 0.1)'
+                  : 'rgba(211, 47, 47, 0.1)',
+                color: message.includes('exitosamente') 
+                  ? 'rgb(23, 165, 170)'
+                  : '#d32f2f'
+              }}
+            >
+              <Typography align="center">{message}</Typography>
+            </Box>
           )}
         </form>
       </Paper>
+
+      {/* Snackbar para notificaciones */}
+      <Snackbar
+        open={!!message}
+        autoHideDuration={6000}
+        onClose={() => setMessage('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setMessage('')}
+          severity={message?.includes('exitosamente') ? 'success' : 'error'}
+          sx={{ width: '100%' }}
+        >
+          {message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };
 
-export default CreateFlat;
+export default UpdateFlat;

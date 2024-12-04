@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   Box,
@@ -33,7 +33,8 @@ import {
   Key as KeyIcon,
   Upload as UploadIcon,
   Home as HomeIcon,
-  Apartment as ApartmentIcon
+  Apartment as ApartmentIcon,
+  AdminPanelSettings
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 
@@ -229,17 +230,21 @@ const ProfileField = ({
 };
 const ProfileUpdate = () => {
   const navigate = useNavigate();
-  const userId = JSON.parse(localStorage.getItem('user'))?.id;
+  const params = useParams();
+  const loggedUserId = JSON.parse(localStorage.getItem('user'))?.id;
+  const isOwnProfile = !params.id || params.id === loggedUserId;
+  const targetUserId = params.id || loggedUserId;
+
   const [profile, setProfile] = useState({
     firstName: '',
     lastName: '',
     email: '',
     birthDate: '',
     profileImage: '',
-    flatsOwned: []
+    flatsOwned: [],
+    isAdmin: false
   });
 
-  // Estado de edición actualizado para cada campo
   const [editStates, setEditStates] = useState({
     nombre: false,
     apellido: false,
@@ -250,6 +255,8 @@ const ProfileUpdate = () => {
   const [loading, setLoading] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [passwordDialog, setPasswordDialog] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -268,12 +275,15 @@ const ProfileUpdate = () => {
       navigate('/login');
       return;
     }
+
+    const userInfo = JSON.parse(localStorage.getItem('user'));
+    setCanEdit(isOwnProfile || userInfo?.isAdmin);
     fetchUserProfile();
-  }, [navigate]);
+  }, [navigate, isOwnProfile]);
 
   const fetchUserProfile = async () => {
     try {
-      if (!userId) {
+      if (!targetUserId) {
         navigate('/login');
         return;
       }
@@ -281,7 +291,7 @@ const ProfileUpdate = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:8080/users/${userId}`,
+        `http://localhost:8080/users/${targetUserId}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -289,17 +299,16 @@ const ProfileUpdate = () => {
 
       if (response.data.success) {
         const userData = response.data.data;
-        // Asegurarse de que los datos se formateen correctamente
         setProfile({
           firstName: userData.firstName || '',
           lastName: userData.lastName || '',
           email: userData.email || '',
           birthDate: userData.birthDate ? userData.birthDate.split('T')[0] : '',
           profileImage: userData.profileImage || '',
-          flatsOwned: userData.flatsOwned || []
+          flatsOwned: userData.flatsOwned || [],
+          isAdmin: userData.isAdmin || false
         });
 
-        // Resetear estados de edición
         setEditStates({
           nombre: false,
           apellido: false,
@@ -308,7 +317,7 @@ const ProfileUpdate = () => {
         });
       }
     } catch (err) {
-      if (err.response?.status === 401) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
         navigate('/login');
         return;
       }
@@ -320,10 +329,9 @@ const ProfileUpdate = () => {
     } finally {
       setLoading(false);
     }
-  };
-  const handleUpdate = async (field, value) => {
+  };const handleUpdate = async (field, value) => {
     try {
-      if (!userId) {
+      if (!targetUserId) {
         setSnackbar({
           open: true,
           message: 'Error de autenticación',
@@ -347,7 +355,7 @@ const ProfileUpdate = () => {
       updateData[apiField] = value;
 
       const response = await axios.put(
-        `http://localhost:8080/users/${userId}`, // Cambio aquí
+        `http://localhost:8080/users/${targetUserId}`,
         updateData,
         {
           headers: {
@@ -384,7 +392,7 @@ const ProfileUpdate = () => {
     } finally {
       setLoading(false);
     }
-};
+  };
 
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
@@ -414,7 +422,7 @@ const ProfileUpdate = () => {
         const token = localStorage.getItem('token');
         
         const response = await axios.put(
-          `http://localhost:8080/users/${userId}`, // Cambio aquí
+          `http://localhost:8080/users/${targetUserId}`,
           formData,
           {
             headers: {
@@ -452,16 +460,18 @@ const ProfileUpdate = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.delete(
-        'http://localhost:8080/users/profile',
+        `http://localhost:8080/users/${targetUserId}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
       );
 
       if (response.data.success) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/login');
+        if (isOwnProfile) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+        navigate(isOwnProfile ? '/login' : '/admin');
         setSnackbar({
           open: true,
           message: 'Cuenta eliminada exitosamente',
@@ -524,8 +534,7 @@ const ProfileUpdate = () => {
         severity: 'error'
       });
     }
-  };
-  if (loading && !profile.firstName) {
+  };if (loading && !profile.firstName) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
         <CircularProgress sx={{ color: 'rgb(23, 165, 170)' }} />
@@ -539,18 +548,21 @@ const ProfileUpdate = () => {
         <Grid item xs={12} md={8}>
           <StyledPaper>
             <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <input
-                accept="image/*"
-                type="file"
-                id="profile-image-upload"
-                hidden
-                onChange={handleImageUpload}
-              />
-              <label htmlFor="profile-image-upload">
+              {canEdit && (
+                <input
+                  accept="image/*"
+                  type="file"
+                  id="profile-image-upload"
+                  hidden
+                  onChange={handleImageUpload}
+                />
+              )}
+              <label htmlFor={canEdit ? "profile-image-upload" : undefined}>
                 <ProfileAvatar
                   src={profile.profileImage}
                   alt={`${profile.firstName} ${profile.lastName}`}
-                  component="span"
+                  component={canEdit ? "span" : "div"}
+                  sx={{ cursor: canEdit ? 'pointer' : 'default' }}
                 >
                   {!profile.profileImage && profile.firstName && profile.lastName 
                     ? `${profile.firstName[0]}${profile.lastName[0]}`
@@ -560,19 +572,35 @@ const ProfileUpdate = () => {
               <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: '#0E3F33' }}>
                 {`${profile.firstName} ${profile.lastName}`}
               </Typography>
-              <Box sx={{ 
-                display: 'inline-flex', 
-                alignItems: 'center', 
-                gap: 1, 
-                bgcolor: 'rgba(31, 209, 215, 0.1)', 
-                px: 2, 
-                py: 1, 
-                borderRadius: 2 
-              }}>
-                <ApartmentIcon sx={{ color: 'rgb(23, 165, 170)' }} />
-                <Typography>
-                  {profile.flatsOwned?.length || 0} {profile.flatsOwned?.length === 1 ? 'Propiedad' : 'Propiedades'}
-                </Typography>
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <Box sx={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: 1, 
+                  bgcolor: 'rgba(31, 209, 215, 0.1)', 
+                  px: 2, 
+                  py: 1, 
+                  borderRadius: 2 
+                }}>
+                  <ApartmentIcon sx={{ color: 'rgb(23, 165, 170)' }} />
+                  <Typography>
+                    {profile.flatsOwned?.length || 0} {profile.flatsOwned?.length === 1 ? 'Propiedad' : 'Propiedades'}
+                  </Typography>
+                </Box>
+                {profile.isAdmin && (
+                  <Box sx={{ 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: 1,
+                    bgcolor: 'rgba(31, 209, 215, 0.1)',
+                    px: 2,
+                    py: 1,
+                    borderRadius: 2
+                  }}>
+                    <AdminPanelSettings sx={{ color: 'rgb(23, 165, 170)' }} />
+                    <Typography>Administrador</Typography>
+                  </Box>
+                )}
               </Box>
             </Box>
 
@@ -587,6 +615,7 @@ const ProfileUpdate = () => {
               onSave={() => handleUpdate('nombre', profile.firstName)}
               onCancel={() => setEditStates(prev => ({ ...prev, nombre: false }))}
               setEditStates={setEditStates}
+              disabled={!canEdit}
             />
 
             <ProfileField
@@ -598,6 +627,7 @@ const ProfileUpdate = () => {
               onSave={() => handleUpdate('apellido', profile.lastName)}
               onCancel={() => setEditStates(prev => ({ ...prev, apellido: false }))}
               setEditStates={setEditStates}
+              disabled={!canEdit}
             />
 
             <ProfileField
@@ -610,6 +640,7 @@ const ProfileUpdate = () => {
               onSave={() => handleUpdate('email', profile.email)}
               onCancel={() => setEditStates(prev => ({ ...prev, email: false }))}
               setEditStates={setEditStates}
+              disabled={!canEdit}
             />
 
             <ProfileField
@@ -622,40 +653,43 @@ const ProfileUpdate = () => {
               onSave={() => handleUpdate('fecha de nacimiento', profile.birthDate)}
               onCancel={() => setEditStates(prev => ({ ...prev, 'fecha de nacimiento': false }))}
               setEditStates={setEditStates}
+              disabled={!canEdit}
             />
 
-            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
-              <StyledButton
-                startIcon={<KeyIcon />}
-                onClick={() => setPasswordDialog(true)}
-                variant="outlined"
-                sx={{ 
-                  color: 'rgb(23, 165, 170)', 
-                  borderColor: 'rgb(23, 165, 170)',
-                  '&:hover': {
-                    borderColor: '#1FD1D7',
-                    backgroundColor: 'rgba(31, 209, 215, 0.1)'
-                  }
-                }}
-              >
-                Cambiar contraseña
-              </StyledButton>
-              
-              <StyledButton
-                startIcon={<DeleteIcon />}
-                onClick={() => setDeleteDialog(true)}
-                variant="outlined"
-                color="error"
-              >
-                Eliminar cuenta
-              </StyledButton>
-            </Box>
+            {canEdit && isOwnProfile && (
+              <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
+                <StyledButton
+                  startIcon={<KeyIcon />}
+                  onClick={() => setPasswordDialog(true)}
+                  variant="outlined"
+                  sx={{ 
+                    color: 'rgb(23, 165, 170)', 
+                    borderColor: 'rgb(23, 165, 170)',
+                    '&:hover': {
+                      borderColor: '#1FD1D7',
+                      backgroundColor: 'rgba(31, 209, 215, 0.1)'
+                    }
+                  }}
+                >
+                  Cambiar contraseña
+                </StyledButton>
+                
+                <StyledButton
+                  startIcon={<DeleteIcon />}
+                  onClick={() => setDeleteDialog(true)}
+                  variant="outlined"
+                  color="error"
+                >
+                  Eliminar cuenta
+                </StyledButton>
+              </Box>
+            )}
           </StyledPaper>
 
           {profile.flatsOwned?.length > 0 && (
             <Box mt={4}>
               <Typography variant="h6" gutterBottom sx={{ color: '#0E3F33' }}>
-                Mis Propiedades
+                {isOwnProfile ? 'Mis Propiedades' : 'Propiedades'}
               </Typography>
               {profile.flatsOwned.map((flat) => (
                 <PropertyCard key={flat._id} elevation={0}>
@@ -719,7 +753,7 @@ const ProfileUpdate = () => {
         </Grid>
       </Grid>
 
-      {/* Diálogos y Snackbar */}
+      {/* Diálogo de eliminación de cuenta */}
       <Dialog 
         open={deleteDialog} 
         onClose={() => setDeleteDialog(false)}
@@ -730,8 +764,9 @@ const ProfileUpdate = () => {
         <DialogTitle sx={{ color: '#0E3F33' }}>Eliminar cuenta</DialogTitle>
         <DialogContent>
           <Typography>
-            ¿Estás seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.
-            Se eliminarán todas tus propiedades y datos asociados.
+            ¿Estás seguro de que quieres eliminar {isOwnProfile ? 'tu cuenta' : 'esta cuenta'}? 
+            Esta acción no se puede deshacer.
+            {isOwnProfile && ' Se eliminarán todas tus propiedades y datos asociados.'}
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -751,6 +786,7 @@ const ProfileUpdate = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Diálogo de cambio de contraseña */}
       <Dialog 
         open={passwordDialog} 
         onClose={() => setPasswordDialog(false)}
@@ -837,6 +873,7 @@ const ProfileUpdate = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Snackbar para notificaciones */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}
