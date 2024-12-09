@@ -136,6 +136,8 @@ const NavMenuItem = styled(MenuItem)({
 const StyledAvatar = styled(Avatar)(({ theme }) => ({
   backgroundColor: 'rgb(23, 165, 170)',
   transition: 'all 0.3s ease-in-out',
+  width: 40,
+  height: 40,
   '&:hover': {
     transform: 'scale(1.1)',
     boxShadow: '0 4px 8px rgba(23, 165, 170, 0.2)',
@@ -148,6 +150,7 @@ const Navbar = () => {
   const [anchorElUser, setAnchorElUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userInfo, setUserInfo] = useState(null);
+  const [lastUpdate, setLastUpdate] = useState(Date.now());
 
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
@@ -240,12 +243,26 @@ const Navbar = () => {
     };
 
     checkAuth();
-  }, [navigate]);
+
+    const handleStorageChange = (e) => {
+      if (e.key === 'user') {
+        setLastUpdate(Date.now());
+        checkAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [navigate, lastUpdate]);
 
   return (
     <StyledAppBar>
       <Container maxWidth="xl">
         <Toolbar disableGutters>
+          {/* Logo para pantallas grandes */}
           <LogoContainer
             onClick={handleLogoClick}
             sx={{
@@ -259,6 +276,7 @@ const Navbar = () => {
             </LogoText>
           </LogoContainer>
 
+          {/* Menú móvil */}
           <Box sx={{ flexGrow: 1, display: { xs: 'flex', md: 'none' } }}>
             <IconButton
               size="large"
@@ -312,6 +330,7 @@ const Navbar = () => {
             </Menu>
           </Box>
 
+          {/* Logo para móvil */}
           <LogoContainer
             onClick={handleLogoClick}
             sx={{
@@ -326,6 +345,7 @@ const Navbar = () => {
             </LogoText>
           </LogoContainer>
 
+          {/* Menú de navegación para pantallas grandes */}
           <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' } }}>
             {pages.map((page) => (
               <NavButton
@@ -337,6 +357,7 @@ const Navbar = () => {
             ))}
           </Box>
 
+          {/* Sección de autenticación */}
           <Box sx={{ flexGrow: 0, display: 'flex', alignItems: 'center', gap: 2 }}>
             {isAuthenticated ? (
               <>
@@ -348,8 +369,13 @@ const Navbar = () => {
                 </CreateFlatButton>
                 <Tooltip title="Open settings">
                   <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
-                    <StyledAvatar src={userInfo?.profileImage || null}>
-                      {!userInfo?.profileImage && `${userInfo?.firstName?.[0]}${userInfo?.lastName?.[0]}`}
+                    <StyledAvatar 
+                      src={userInfo?.profileImage} 
+                      alt={`${userInfo?.firstName} ${userInfo?.lastName}`}
+                      key={userInfo?.profileImage}
+                    >
+                      {!userInfo?.profileImage && userInfo?.firstName && userInfo?.lastName && 
+                        `${userInfo.firstName[0]}${userInfo.lastName[0]}`}
                     </StyledAvatar>
                   </IconButton>
                 </Tooltip>

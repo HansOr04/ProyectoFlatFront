@@ -395,63 +395,53 @@ const ProfileUpdate = () => {
   };
 
   const handleImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setSnackbar({
-          open: true,
-          message: 'La imagen no debe superar los 5MB',
-          severity: 'error'
-        });
-        return;
-      }
-
-      if (!file.type.startsWith('image/')) {
-        setSnackbar({
-          open: true,
-          message: 'Solo se permiten archivos de imagen',
-          severity: 'error'
-        });
-        return;
-      }
-
-      try {
-        setLoading(true);
-        const formData = new FormData();
-        formData.append('profileImage', file);
-        const token = localStorage.getItem('token');
-        
-        const response = await axios.put(
-          `http://localhost:8080/users/${targetUserId}`,
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'multipart/form-data'
-            }
+    try {
+      const file = event.target.files[0];
+      if (!file) return;
+  
+      setLoading(true);
+  
+      // Crear FormData
+      const formData = new FormData();
+      formData.append('profileImage', file); // El nombre debe coincidir con el esperado en el backend
+  
+      const token = localStorage.getItem('token');
+      console.log('Enviando imagen...', file); // Debug
+  
+      const response = await axios.put(
+        `http://localhost:8080/users/${targetUserId}`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
           }
-        );
-
-        if (response.data.success) {
-          setProfile(prev => ({
-            ...prev,
-            profileImage: response.data.data.profileImage
-          }));
-          setSnackbar({
-            open: true,
-            message: 'Imagen actualizada exitosamente',
-            severity: 'success'
-          });
         }
-      } catch (err) {
+      );
+  
+      console.log('Respuesta del servidor:', response.data); // Debug
+  
+      if (response.data.success) {
+        setProfile(prev => ({
+          ...prev,
+          profileImage: response.data.data.profileImage
+        }));
+  
         setSnackbar({
           open: true,
-          message: err.response?.data?.message || 'Error al actualizar la imagen',
-          severity: 'error'
+          message: 'Imagen actualizada exitosamente',
+          severity: 'success'
         });
-      } finally {
-        setLoading(false);
       }
+    } catch (error) {
+      console.error('Error completo:', error);
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Error al actualizar la imagen',
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -544,65 +534,143 @@ const ProfileUpdate = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Grid container spacing={4}>
-        <Grid item xs={12} md={8}>
-          <StyledPaper>
-            <Box sx={{ textAlign: 'center', mb: 4 }}>
-              {canEdit && (
-                <input
-                  accept="image/*"
-                  type="file"
-                  id="profile-image-upload"
-                  hidden
-                  onChange={handleImageUpload}
-                />
-              )}
-              <label htmlFor={canEdit ? "profile-image-upload" : undefined}>
-                <ProfileAvatar
-                  src={profile.profileImage}
-                  alt={`${profile.firstName} ${profile.lastName}`}
-                  component={canEdit ? "span" : "div"}
-                  sx={{ cursor: canEdit ? 'pointer' : 'default' }}
-                >
-                  {!profile.profileImage && profile.firstName && profile.lastName 
-                    ? `${profile.firstName[0]}${profile.lastName[0]}`
-                    : null}
-                </ProfileAvatar>
-              </label>
-              <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: '#0E3F33' }}>
-                {`${profile.firstName} ${profile.lastName}`}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-                <Box sx={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: 1, 
-                  bgcolor: 'rgba(31, 209, 215, 0.1)', 
-                  px: 2, 
-                  py: 1, 
-                  borderRadius: 2 
-                }}>
-                  <ApartmentIcon sx={{ color: 'rgb(23, 165, 170)' }} />
-                  <Typography>
-                    {profile.flatsOwned?.length || 0} {profile.flatsOwned?.length === 1 ? 'Propiedad' : 'Propiedades'}
-                  </Typography>
-                </Box>
-                {profile.isAdmin && (
-                  <Box sx={{ 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: 1,
-                    bgcolor: 'rgba(31, 209, 215, 0.1)',
-                    px: 2,
-                    py: 1,
-                    borderRadius: 2
-                  }}>
-                    <AdminPanelSettings sx={{ color: 'rgb(23, 165, 170)' }} />
-                    <Typography>Administrador</Typography>
-                  </Box>
+  <Grid container spacing={4}>
+    <Grid item xs={12} md={8}>
+      <StyledPaper>
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          {canEdit && (
+            <input
+              accept="image/*"
+              type="file"
+              id="profile-image-upload"
+              hidden
+              onChange={handleImageUpload}
+            />
+          )}
+          <Box 
+            sx={{ 
+              position: 'relative',
+              display: 'inline-block',
+              mb: 2,
+              '&:hover .upload-overlay': {
+                opacity: 1
+              }
+            }}
+          >
+            <label htmlFor={canEdit ? "profile-image-upload" : undefined}>
+              <ProfileAvatar
+                src={profile.profileImage}
+                alt={`${profile.firstName} ${profile.lastName}`}
+                sx={{ 
+                  width: 120,
+                  height: 120,
+                  cursor: canEdit ? 'pointer' : 'default',
+                  border: '4px solid white',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  transition: 'transform 0.2s ease-in-out',
+                  '&:hover': {
+                    transform: canEdit ? 'scale(1.05)' : 'none'
+                  }
+                }}
+              >
+                {!profile.profileImage && (
+                  profile.firstName && profile.lastName 
+                    ? `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase()
+                    : <PersonIcon sx={{ fontSize: 60, color: 'rgb(23, 165, 170)' }} />
                 )}
-              </Box>
+              </ProfileAvatar>
+              {canEdit && (
+                <Box
+                  className="upload-overlay"
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: 0,
+                    transition: 'opacity 0.3s ease',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <UploadIcon sx={{ color: 'white', fontSize: 30 }} />
+                </Box>
+              )}
+            </label>
+          </Box>
+
+          <Typography 
+            variant="h5" 
+            gutterBottom 
+            sx={{ 
+              fontWeight: 600, 
+              color: '#0E3F33',
+              mb: 2 
+            }}
+          >
+            {`${profile.firstName} ${profile.lastName}`}
+          </Typography>
+
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 2, 
+            justifyContent: 'center', 
+            flexWrap: 'wrap',
+            mb: 1
+          }}>
+            <Box sx={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: 1, 
+              bgcolor: 'rgba(23, 165, 170, 0.1)', 
+              px: 2, 
+              py: 1, 
+              borderRadius: 2,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                bgcolor: 'rgba(23, 165, 170, 0.2)'
+              }
+            }}>
+              <ApartmentIcon sx={{ color: 'rgb(23, 165, 170)' }} />
+              <Typography sx={{ color: '#0E3F33' }}>
+                {profile.flatsOwned?.length || 0} {profile.flatsOwned?.length === 1 ? 'Propiedad' : 'Propiedades'}
+              </Typography>
             </Box>
+
+            {profile.isAdmin && (
+              <Box sx={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: 1,
+                bgcolor: 'rgba(23, 165, 170, 0.1)',
+                px: 2,
+                py: 1,
+                borderRadius: 2,
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  bgcolor: 'rgba(23, 165, 170, 0.2)'
+                }
+              }}>
+                <AdminPanelSettings sx={{ color: 'rgb(23, 165, 170)' }} />
+                <Typography sx={{ color: '#0E3F33' }}>Administrador</Typography>
+              </Box>
+            )}
+          </Box>
+
+          {loading && (
+            <Box sx={{ mt: 2 }}>
+              <CircularProgress 
+                size={24} 
+                sx={{ color: 'rgb(23, 165, 170)' }} 
+              />
+            </Box>
+          )}
+        </Box>
 
             <Divider sx={{ my: 3 }} />
 

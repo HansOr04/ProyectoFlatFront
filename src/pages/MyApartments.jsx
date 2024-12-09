@@ -72,21 +72,36 @@ const MyApartments = () => {
         fetchMyApartments();
     }, []);
 
-    const fetchMyApartments = async () => {
-        try {
-            const response = await axios.get('http://localhost:8080/flats', {
-                headers: getAuthHeaders(),
-                params: { owner: true }
-            });
-            setApartments(response.data.data);
-            setError(null);
-            setLoading(false);
-        } catch (error) {
-            console.error('Error fetching apartments:', error);
-            setError('Error al cargar los departamentos');
-            setLoading(false);
+    // Modificar la función fetchMyApartments
+const fetchMyApartments = async () => {
+    try {
+        setLoading(true);
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+            navigate('/login');
+            return;
         }
-    };
+
+        // Usar el endpoint existente con el parámetro owner: true
+        const response = await axios.get('http://localhost:8080/flats', {
+            headers: getAuthHeaders(),
+            params: {
+                owner: 'true'  // Asegurarse de que se envía como string
+            }
+        });
+
+        if (response.data.success) {
+            setApartments(response.data.data);
+        } else {
+            setError('No se pudieron cargar los departamentos');
+        }
+    } catch (error) {
+        setError(error.response?.data?.message || 'Error al cargar los departamentos');
+    } finally {
+        setLoading(false);
+    }
+};
 
     const handleEdit = (flatId) => {
         navigate(`/apartments/edit/${flatId}`);

@@ -531,14 +531,65 @@ return (
               </Typography>
 
               {/* House Rules Section */}
-              {showHouseRules && (
-                <>
-                  <Typography variant="h6" sx={{ mb: 2 }}>House Rules</Typography>
-                  <Box sx={{ mb: 3 }}>
-                    {/* House Rules Content */}
-                  </Box>
-                </>
-              )}
+{showHouseRules && (
+  <>
+    <Typography variant="h6" sx={{ mb: 2 }}>House Rules</Typography>
+    <Box sx={{ mb: 3 }}>
+      <List>
+        <ListItem>
+          <ListItemIcon>
+            {flat.houseRules?.smokingAllowed ? 
+              <CheckIcon sx={{ color: PRIMARY_COLOR }} /> : 
+              <ClearIcon color="error" />}
+          </ListItemIcon>
+          <ListItemText 
+            primary="Smoking"
+            secondary={flat.houseRules?.smokingAllowed ? "Allowed" : "Not allowed"}
+          />
+        </ListItem>
+        <ListItem>
+          <ListItemIcon>
+            {flat.houseRules?.eventsAllowed ? 
+              <CheckIcon sx={{ color: PRIMARY_COLOR }} /> : 
+              <ClearIcon color="error" />}
+          </ListItemIcon>
+          <ListItemText 
+            primary="Events"
+            secondary={flat.houseRules?.eventsAllowed ? "Allowed" : "Not allowed"}
+          />
+        </ListItem>
+        <ListItem>
+          <ListItemIcon>
+            <CalendarTodayIcon sx={{ color: PRIMARY_COLOR }} />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Quiet Hours"
+            secondary={`${flat.houseRules?.quietHours?.start} - ${flat.houseRules?.quietHours?.end}`}
+          />
+        </ListItem>
+      </List>
+
+      {flat.houseRules?.additionalRules?.length > 0 && (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>Additional Rules:</Typography>
+          <List dense>
+            {flat.houseRules.additionalRules.map((rule, index) => (
+              <ListItem key={index}>
+                <ListItemIcon>
+                  <CheckIcon sx={{ color: PRIMARY_COLOR, fontSize: '1rem' }} />
+                </ListItemIcon>
+                <ListItemText 
+                  primary={rule}
+                  primaryTypographyProps={{ variant: 'body2' }}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Box>
+      )}
+    </Box>
+  </>
+)}
             </Box>
           )}
 
