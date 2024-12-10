@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { 
-  Box, 
-  Typography, 
-  Button, 
-  TextField, 
-  CircularProgress, 
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import {
+  Box,
+  Typography,
+  Button,
+  TextField,
+  CircularProgress,
   Alert,
   Card,
   CardMedia,
@@ -18,51 +18,57 @@ import {
   useTheme,
   Menu,
   MenuItem,
-  Fab
-} from '@mui/material';
-import FolderIcon from '@mui/icons-material/Folder';
-import AddIcon from '@mui/icons-material/Add';
-import CloseIcon from '@mui/icons-material/Close';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import MenuIcon from '@mui/icons-material/Menu';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
+  Fab,
+} from "@mui/material";
+import FolderIcon from "@mui/icons-material/Folder";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import MenuIcon from "@mui/icons-material/Menu";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 
 const FavoritesView = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(!isMobile);
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [folders, setFolders] = useState(() => {
-    const savedFolders = localStorage.getItem('favoriteFolders');
-    return savedFolders ? JSON.parse(savedFolders) : {
-      'All Favorites': []
-    };
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
   });
-  const [selectedFolder, setSelectedFolder] = useState('All Favorites');
+  const [folders, setFolders] = useState(() => {
+    const savedFolders = localStorage.getItem("favoriteFolders");
+    return savedFolders
+      ? JSON.parse(savedFolders)
+      : {
+          "All Favorites": [],
+        };
+  });
+  const [selectedFolder, setSelectedFolder] = useState("All Favorites");
   const [isAddingFolder, setIsAddingFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderName, setNewFolderName] = useState("");
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [selectedProperty, setSelectedProperty] = useState(null);
 
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   const axiosInstance = axios.create({
-    baseURL: 'http://localhost:8080',
-    headers: { Authorization: `Bearer ${token}` }
+    baseURL: "http://localhost:8080",
+    headers: { Authorization: `Bearer ${token}` },
   });
 
   useEffect(() => {
     const fetchFavorites = async () => {
       if (!token) {
-        navigate('/login');
+        navigate("/login");
         return;
       }
 
       try {
         setLoading(true);
-        const response = await axiosInstance.get('/users/favorites');
+        const response = await axiosInstance.get("/users/favorites");
         setFavorites(response.data.data);
       } catch (err) {
         handleError(err);
@@ -75,7 +81,7 @@ const FavoritesView = () => {
   }, [token, navigate]);
 
   useEffect(() => {
-    localStorage.setItem('favoriteFolders', JSON.stringify(folders));
+    localStorage.setItem("favoriteFolders", JSON.stringify(folders));
   }, [folders]);
 
   useEffect(() => {
@@ -86,13 +92,13 @@ const FavoritesView = () => {
 
   const handleError = (err) => {
     if (err.response?.status === 401) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
     setSnackbar({
       open: true,
-      message: 'Ha ocurrido un error',
-      severity: 'error'
+      message: "Ha ocurrido un error",
+      severity: "error",
     });
   };
 
@@ -100,14 +106,16 @@ const FavoritesView = () => {
     try {
       const response = await axiosInstance.post(`/flats/${flatId}/favorite`);
       if (response.data.success) {
-        setFavorites(prev => prev.filter(flat => flat._id !== flatId));
+        setFavorites((prev) => prev.filter((flat) => flat._id !== flatId));
         // Remove from all folders
         const updatedFolders = { ...folders };
-        Object.keys(updatedFolders).forEach(folderName => {
-          updatedFolders[folderName] = updatedFolders[folderName].filter(id => id !== flatId);
+        Object.keys(updatedFolders).forEach((folderName) => {
+          updatedFolders[folderName] = updatedFolders[folderName].filter(
+            (id) => id !== flatId
+          );
         });
         setFolders(updatedFolders);
-        showSnackbar('Eliminado de favoritos', 'success');
+        showSnackbar("Eliminado de favoritos", "success");
       }
     } catch (err) {
       handleError(err);
@@ -116,65 +124,69 @@ const FavoritesView = () => {
 
   const handleCreateFolder = () => {
     if (newFolderName.trim() && !folders[newFolderName]) {
-      setFolders(prev => ({
+      setFolders((prev) => ({
         ...prev,
-        [newFolderName]: []
+        [newFolderName]: [],
       }));
-      setNewFolderName('');
+      setNewFolderName("");
       setIsAddingFolder(false);
-      showSnackbar('Carpeta creada exitosamente', 'success');
+      showSnackbar("Carpeta creada exitosamente", "success");
     }
   };
 
   const handleDeleteFolder = (folderName, event) => {
     event.stopPropagation();
-    if (folderName === 'All Favorites') return;
+    if (folderName === "All Favorites") return;
     const newFolders = { ...folders };
     delete newFolders[folderName];
     setFolders(newFolders);
-    setSelectedFolder('All Favorites');
-    showSnackbar('Carpeta eliminada', 'success');
+    setSelectedFolder("All Favorites");
+    showSnackbar("Carpeta eliminada", "success");
   };
 
   const handleAddToFolder = (folderName) => {
-    if (!selectedProperty || folderName === 'All Favorites') return;
-    
-    setFolders(prev => ({
+    if (!selectedProperty || folderName === "All Favorites") return;
+
+    setFolders((prev) => ({
       ...prev,
-      [folderName]: [...new Set([...prev[folderName], selectedProperty._id])]
+      [folderName]: [...new Set([...prev[folderName], selectedProperty._id])],
     }));
-    
+
     setMenuAnchorEl(null);
     setSelectedProperty(null);
-    showSnackbar('Añadido a la carpeta', 'success');
+    showSnackbar("Añadido a la carpeta", "success");
   };
 
   const handleRemoveFromFolder = (flatId, folderName) => {
-    if (folderName === 'All Favorites') return;
-    
-    setFolders(prev => ({
+    if (folderName === "All Favorites") return;
+
+    setFolders((prev) => ({
       ...prev,
-      [folderName]: prev[folderName].filter(id => id !== flatId)
+      [folderName]: prev[folderName].filter((id) => id !== flatId),
     }));
-    
-    showSnackbar('Eliminado de la carpeta', 'success');
+
+    showSnackbar("Eliminado de la carpeta", "success");
   };
 
   const showSnackbar = (message, severity) => {
     setSnackbar({ open: true, message, severity });
   };
- 
 
   const Sidebar = () => (
-    <Box 
-      sx={{ 
-        width: isMobile ? '100%' : 'auto',
-        height: '100%',
-        overflow: 'auto',
-        p: 2
+    <Box
+      sx={{
+        width: isMobile ? "100%" : "auto",
+        height: "100%",
+        overflow: "auto",
+        p: 2,
       }}
     >
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={3}
+      >
         <Typography variant="h6">Mis Carpetas</Typography>
         <IconButton onClick={() => setIsAddingFolder(true)}>
           <AddIcon />
@@ -191,11 +203,7 @@ const FavoritesView = () => {
             fullWidth
             autoFocus
           />
-          <Button
-            variant="contained"
-            onClick={handleCreateFolder}
-            size="small"
-          >
+          <Button variant="contained" onClick={handleCreateFolder} size="small">
             Crear
           </Button>
         </Box>
@@ -205,17 +213,21 @@ const FavoritesView = () => {
         <Box
           key={folderName}
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
             p: 1.5,
             my: 0.5,
             borderRadius: 1,
-            cursor: 'pointer',
-            bgcolor: selectedFolder === folderName ? 'action.selected' : 'transparent',
-            '&:hover': {
-              bgcolor: selectedFolder === folderName ? 'action.selected' : 'action.hover'
-            }
+            cursor: "pointer",
+            bgcolor:
+              selectedFolder === folderName ? "action.selected" : "transparent",
+            "&:hover": {
+              bgcolor:
+                selectedFolder === folderName
+                  ? "action.selected"
+                  : "action.hover",
+            },
           }}
           onClick={() => {
             setSelectedFolder(folderName);
@@ -226,7 +238,7 @@ const FavoritesView = () => {
             <FolderIcon color="action" />
             <Typography>{folderName}</Typography>
           </Box>
-          {folderName !== 'All Favorites' && (
+          {folderName !== "All Favorites" && (
             <IconButton
               size="small"
               onClick={(e) => handleDeleteFolder(folderName, e)}
@@ -241,43 +253,47 @@ const FavoritesView = () => {
 
   const PropertyCard = ({ flat }) => {
     const handleCardClick = (e) => {
-      if (!e.target.closest('button')) {
+      if (!e.target.closest("button")) {
         navigate(`/flats/${flat._id}`);
       }
     };
 
     return (
-      <Card 
+      <Card
         elevation={2}
         onClick={handleCardClick}
         sx={{
-          position: 'relative',
-          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-          cursor: 'pointer',
-          '&:hover': {
-            transform: 'translateY(-4px)',
+          position: "relative",
+          transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
+          cursor: "pointer",
+          "&:hover": {
+            transform: "translateY(-4px)",
             boxShadow: theme.shadows[8],
-          }
+          },
         }}
       >
         <CardMedia
           component="img"
           height="200"
-          image={flat.images?.find(img => img.isMainImage)?.url || flat.images?.[0]?.url}
+          image={
+            flat.images?.find((img) => img.isMainImage)?.url ||
+            flat.images?.[0]?.url
+          }
           alt={flat.title}
           sx={{
-            objectFit: 'cover'
+            objectFit: "cover",
           }}
         />
         <Box
           sx={{
-            position: 'absolute',
+            position: "absolute",
             bottom: 0,
             left: 0,
             right: 0,
-            background: 'linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0))',
-            color: 'white',
-            p: 2
+            background:
+              "linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0))",
+            color: "white",
+            p: 2,
           }}
         >
           <Typography variant="h6">{flat.city}</Typography>
@@ -285,22 +301,22 @@ const FavoritesView = () => {
             {flat.areaSize} m² - ${flat.rentPrice}/mes
           </Typography>
         </Box>
-        <Box 
-          sx={{ 
-            position: 'absolute', 
-            top: 8, 
-            right: 8, 
-            display: 'flex', 
-            gap: 1 
+        <Box
+          sx={{
+            position: "absolute",
+            top: 8,
+            right: 8,
+            display: "flex",
+            gap: 1,
           }}
           onClick={(e) => e.stopPropagation()}
         >
           <IconButton
-            sx={{ 
-              bgcolor: 'white',
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.9)'
-              }
+            sx={{
+              bgcolor: "white",
+              "&:hover": {
+                bgcolor: "rgba(255, 255, 255, 0.9)",
+              },
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -311,11 +327,11 @@ const FavoritesView = () => {
             <MoreVertIcon />
           </IconButton>
           <IconButton
-            sx={{ 
-              bgcolor: 'white',
-              '&:hover': {
-                bgcolor: 'rgba(255, 255, 255, 0.9)'
-              }
+            sx={{
+              bgcolor: "white",
+              "&:hover": {
+                bgcolor: "rgba(255, 255, 255, 0.9)",
+              },
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -331,14 +347,25 @@ const FavoritesView = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        height="100vh"
+      >
         <CircularProgress />
       </Box>
     );
   }
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        bgcolor: "background.default",
+      }}
+    >
       {isMobile ? (
         <Drawer
           anchor="left"
@@ -353,22 +380,22 @@ const FavoritesView = () => {
             width: 260,
             flexShrink: 0,
             borderRight: 1,
-            borderColor: 'divider'
+            borderColor: "divider",
           }}
         >
           <Sidebar />
         </Box>
       )}
 
-      <Box 
-        component="main" 
-        sx={{ 
+      <Box
+        component="main"
+        sx={{
           flexGrow: 1,
           p: 3,
-          width: { sm: `calc(100% - ${260}px)` }
+          width: { sm: `calc(100% - ${260}px)` },
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
           {isMobile && (
             <IconButton
               edge="start"
@@ -384,13 +411,13 @@ const FavoritesView = () => {
         </Box>
 
         {favorites.length === 0 ? (
-          <Box 
-            sx={{ 
-              textAlign: 'center',
+          <Box
+            sx={{
+              textAlign: "center",
               p: 6,
-              bgcolor: 'background.paper',
+              bgcolor: "background.paper",
               borderRadius: 1,
-              mt: 3
+              mt: 3,
             }}
           >
             <Typography variant="h6" color="text.secondary" gutterBottom>
@@ -401,22 +428,23 @@ const FavoritesView = () => {
             </Typography>
           </Box>
         ) : (
-          <Box 
+          <Box
             sx={{
-              display: 'grid',
+              display: "grid",
               gridTemplateColumns: {
-                xs: '1fr',
-                sm: 'repeat(2, 1fr)',
-                md: 'repeat(3, 1fr)',
-                lg: 'repeat(4, 1fr)'
+                xs: "1fr",
+                sm: "repeat(2, 1fr)",
+                md: "repeat(3, 1fr)",
+                lg: "repeat(4, 1fr)",
               },
-              gap: 3
+              gap: 3,
             }}
           >
             {favorites
-              .filter(flat => 
-                selectedFolder === 'All Favorites' || 
-                folders[selectedFolder].includes(flat._id)
+              .filter(
+                (flat) =>
+                  selectedFolder === "All Favorites" ||
+                  folders[selectedFolder].includes(flat._id)
               )
               .map((flat) => (
                 <PropertyCard key={flat._id} flat={flat} />
@@ -437,8 +465,8 @@ const FavoritesView = () => {
           <Typography variant="subtitle2">Añadir a carpeta</Typography>
         </MenuItem>
         {Object.keys(folders)
-          .filter(name => name !== 'All Favorites')
-          .map(folderName => (
+          .filter((name) => name !== "All Favorites")
+          .map((folderName) => (
             <MenuItem
               key={folderName}
               onClick={() => handleAddToFolder(folderName)}
@@ -453,10 +481,10 @@ const FavoritesView = () => {
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
       >
-        <Alert 
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
           severity={snackbar.severity}
           variant="filled"
         >
@@ -468,4 +496,3 @@ const FavoritesView = () => {
 };
 
 export default FavoritesView;
-

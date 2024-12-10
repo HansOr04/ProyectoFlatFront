@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import {
-  DataGrid,
-  GridToolbar,
-} from "@mui/x-data-grid";
+import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import {
   Button,
   Typography,
@@ -19,6 +16,10 @@ import {
   Box,
   Paper,
   Switch,
+  Card,
+  CardContent,
+  CardActions,
+  useMediaQuery,
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
@@ -29,16 +30,18 @@ import {
 import { styled } from "@mui/material/styles";
 
 const StyledContainer = styled("div")`
-  padding: 32px;
+  padding: 16px;
   max-width: 1400px;
   margin: auto;
   background-color: #f8f9fa;
   min-height: 100vh;
+  box-sizing: border-box;
+  overflow: hidden;
 `;
 
 const StyledHeader = styled(Paper)`
-  padding: 24px;
-  margin-bottom: 24px;
+  padding: 16px;
+  margin-bottom: 16px;
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -61,7 +64,7 @@ const StyledGridContainer = styled(Paper)`
 
   .MuiDataGrid-columnHeaders {
     background-color: rgba(23, 165, 170, 0.1);
-    color: #0E3F33;
+    color: #0e3f33;
   }
 
   .MuiDataGrid-cell {
@@ -104,6 +107,7 @@ const AdminPanel = () => {
     message: "",
     severity: "success",
   });
+  const isSmallScreen = useMediaQuery("(max-width: 1024px)");
 
   const fetchUsers = async () => {
     try {
@@ -111,26 +115,28 @@ const AdminPanel = () => {
       const response = await axios.get("http://localhost:8080/users", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       const formattedUsers = response.data.data.map((user) => ({
         ...user,
         id: user._id,
         flatsCount: user.flatsOwned?.length || 0,
-        createdAt: new Date(user.atCreated).toLocaleDateString('es-ES', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
+        createdAt: new Date(user.atCreated).toLocaleDateString("es-ES", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
         }),
-        birthDate: user.birthDate ? new Date(user.birthDate).toLocaleDateString('es-ES', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }) : 'No especificado'
+        birthDate: user.birthDate
+          ? new Date(user.birthDate).toLocaleDateString("es-ES", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })
+          : "No especificado",
       }));
-      
+
       setUsers(formattedUsers);
     } catch (error) {
-      console.error('Error al cargar usuarios:', error);
+      console.error("Error al cargar usuarios:", error);
       setSnackbar({
         open: true,
         message: error.response?.data?.message || "Error al cargar usuarios",
@@ -151,7 +157,7 @@ const AdminPanel = () => {
       await axios.delete(`http://localhost:8080/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       setUsers((prev) => prev.filter((user) => user.id !== userId));
       setSnackbar({
         open: true,
@@ -188,7 +194,9 @@ const AdminPanel = () => {
         );
         setSnackbar({
           open: true,
-          message: `Usuario ${!currentStatus ? "promovido a" : "removido de"} administrador`,
+          message: `Usuario ${
+            !currentStatus ? "promovido a" : "removido de"
+          } administrador`,
           severity: "success",
         });
       }
@@ -207,29 +215,29 @@ const AdminPanel = () => {
       headerName: "",
       width: 60,
       renderCell: (params) => (
-        <Avatar 
+        <Avatar
           src={params.row.profileImage}
-          sx={{ bgcolor: 'rgb(23, 165, 170)' }}
+          sx={{ bgcolor: "rgb(23, 165, 170)" }}
         >
-          {params.row.firstName?.[0] || ''}
+          {params.row.firstName?.[0] || ""}
         </Avatar>
       ),
     },
-    { 
-      field: "email", 
-      headerName: "Email", 
+    {
+      field: "email",
+      headerName: "Email",
       flex: 1,
-      minWidth: 200
+      minWidth: 200,
     },
-    { 
-      field: "firstName", 
-      headerName: "Nombre", 
-      width: 130
+    {
+      field: "firstName",
+      headerName: "Nombre",
+      width: 130,
     },
-    { 
-      field: "lastName", 
-      headerName: "Apellido", 
-      width: 130
+    {
+      field: "lastName",
+      headerName: "Apellido",
+      width: 130,
     },
     {
       field: "birthDate",
@@ -240,7 +248,7 @@ const AdminPanel = () => {
       field: "flatsCount",
       headerName: "Propiedades",
       width: 100,
-      align: 'center'
+      align: "center",
     },
     {
       field: "createdAt",
@@ -258,12 +266,12 @@ const AdminPanel = () => {
           icon={<UserIcon />}
           checkedIcon={<AdminIcon />}
           sx={{
-            '& .MuiSwitch-switchBase.Mui-checked': {
-              color: 'rgb(23, 165, 170)',
+            "& .MuiSwitch-switchBase.Mui-checked": {
+              color: "rgb(23, 165, 170)",
             },
-            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-              backgroundColor: 'rgb(23, 165, 170)',
-            }
+            "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+              backgroundColor: "rgb(23, 165, 170)",
+            },
           }}
         />
       ),
@@ -273,7 +281,7 @@ const AdminPanel = () => {
       headerName: "Acciones",
       width: 160,
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: "flex", gap: 1 }}>
           <StyledButton
             className="view-button"
             variant="outlined"
@@ -301,49 +309,131 @@ const AdminPanel = () => {
   return (
     <StyledContainer>
       <StyledHeader>
-        <Typography variant="h4" sx={{ color: '#0E3F33', fontWeight: 500 }}>
+        <Typography variant="h4" sx={{ color: "#0E3F33", fontWeight: 500 }}>
           Panel de Administración
         </Typography>
       </StyledHeader>
 
-      <StyledGridContainer>
-        <DataGrid
-          rows={users}
-          columns={columns}
-          loading={loading}
-          components={{
-            Toolbar: GridToolbar,
-            LoadingOverlay: CircularProgress,
-          }}
-          componentsProps={{
-            toolbar: {
-              showQuickFilter: true,
-              quickFilterProps: { debounceMs: 500 }
-            }
-          }}
-          pageSize={10}
-          rowsPerPageOptions={[5, 10, 25]}
-          disableSelectionOnClick
-          autoHeight
-        />
-      </StyledGridContainer>
+      {isSmallScreen ? (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {users.map((user) => (
+            <Card key={user.id} sx={{ marginBottom: 2 }}>
+              <CardContent>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: 2,
+                  }}
+                >
+                  <Avatar
+                    src={user.profileImage}
+                    sx={{ bgcolor: "rgb(23, 165, 170)", marginRight: 2 }}
+                  >
+                    {user.firstName?.[0] || ""}
+                  </Avatar>
+                  <Typography variant="h6">
+                    {user.firstName} {user.lastName}
+                  </Typography>
+                </Box>
+                <Typography variant="body2">Email: {user.email}</Typography>
+                <Typography variant="body2">
+                  Fecha de Nacimiento: {user.birthDate}
+                </Typography>
+                <Typography variant="body2">
+                  Propiedades: {user.flatsCount}
+                </Typography>
+                <Typography variant="body2">
+                  Fecha de Registro: {user.createdAt}
+                </Typography>
+                <Typography variant="body2">
+                  Admin: {user.isAdmin ? "Sí" : "No"}
+                </Typography>
+              </CardContent>
+              <CardActions>
+                <StyledButton
+                  className="view-button"
+                  variant="outlined"
+                  size="small"
+                  onClick={() => navigate(`/users/${user.id}`)}
+                >
+                  <ViewIcon />
+                </StyledButton>
+                <StyledButton
+                  className="delete-button"
+                  variant="outlined"
+                  size="small"
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setDeleteDialogOpen(true);
+                  }}
+                >
+                  <DeleteIcon />
+                </StyledButton>
+                <Switch
+                  checked={user.isAdmin}
+                  onChange={() => handleToggleAdmin(user.id, user.isAdmin)}
+                  icon={<UserIcon />}
+                  checkedIcon={<AdminIcon />}
+                  sx={{
+                    "& .MuiSwitch-switchBase.Mui-checked": {
+                      color: "rgb(23, 165, 170)",
+                    },
+                    "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": {
+                      backgroundColor: "rgb(23, 165, 170)",
+                    },
+                  }}
+                />
+              </CardActions>
+            </Card>
+          ))}
+        </Box>
+      ) : (
+        <StyledGridContainer>
+          <DataGrid
+            rows={users}
+            columns={columns}
+            loading={loading}
+            components={{
+              Toolbar: GridToolbar,
+              LoadingOverlay: CircularProgress,
+            }}
+            componentsProps={{
+              toolbar: {
+                showQuickFilter: true,
+                quickFilterProps: { debounceMs: 500 },
+              },
+            }}
+            pageSize={10}
+            rowsPerPageOptions={[5, 10, 25]}
+            disableSelectionOnClick
+            autoHeight
+          />
+        </StyledGridContainer>
+      )}
 
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
         PaperProps={{
-          sx: { borderRadius: 2 }
+          sx: { borderRadius: 2 },
         }}
       >
-        <DialogTitle sx={{ color: '#0E3F33' }}>Confirmar eliminación</DialogTitle>
+        <DialogTitle sx={{ color: "#0E3F33" }}>
+          Confirmar eliminación
+        </DialogTitle>
         <DialogContent>
           <Typography>
-            ¿Estás seguro de que deseas eliminar al usuario {selectedUser?.firstName} {selectedUser?.lastName}?
-            Esta acción no se puede deshacer.
+            ¿Estás seguro de que deseas eliminar al usuario{" "}
+            {selectedUser?.firstName} {selectedUser?.lastName}? Esta acción no
+            se puede deshacer.
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)} sx={{ color: '#0E3F33' }}>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            sx={{ color: "#0E3F33" }}
+          >
             Cancelar
           </Button>
           <Button
@@ -360,9 +450,9 @@ const AdminPanel = () => {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert 
+        <Alert
           severity={snackbar.severity}
           variant="filled"
           onClose={() => setSnackbar({ ...snackbar, open: false })}

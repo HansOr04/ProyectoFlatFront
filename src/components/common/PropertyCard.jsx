@@ -1,5 +1,5 @@
-import React from 'react';
-import { styled } from '@mui/material/styles';
+import React from "react";
+import { styled } from "@mui/material/styles";
 import {
   Card,
   CardMedia,
@@ -11,8 +11,8 @@ import {
   Stack,
   Rating,
   Tooltip,
-  Divider
-} from '@mui/material';
+  Divider,
+} from "@mui/material";
 import {
   Favorite as FavoriteIcon,
   FavoriteBorder as FavoriteBorderIcon,
@@ -42,196 +42,232 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Message as MessageIcon,
-  Collections as CollectionsIcon
-} from '@mui/icons-material';
+  Collections as CollectionsIcon,
+} from "@mui/icons-material";
 
 const StyledCard = styled(Card)(({ theme }) => ({
-  display: 'flex',
-  flexDirection: 'row',
-  borderRadius: '16px',
-  overflow: 'hidden',
-  transition: 'all 0.3s ease',
-  backgroundColor: '#ffffff',
-  border: '1px solid rgba(0, 0, 0, 0.08)',
-  height: '280px',
-  '&:hover': {
-    transform: 'translateY(-8px)',
-    boxShadow: '0 12px 24px rgba(0, 0, 0, 0.1)',
-  }
+  display: "flex",
+  flexDirection: "row",
+  borderRadius: "16px",
+  overflow: "hidden",
+  transition: "all 0.3s ease",
+  backgroundColor: "#ffffff",
+  border: "1px solid rgba(0, 0, 0, 0.08)",
+  height: "280px",
+  "&:hover": {
+    transform: "translateY(-8px)",
+    boxShadow: "0 12px 24px rgba(0, 0, 0, 0.1)",
+  },
+  [theme.breakpoints.down("lg")]: {
+    flexDirection: "column",
+    height: "auto",
+  },
 }));
 
 const StyledCardMedia = styled(CardMedia)(({ theme }) => ({
-  width: '300px',
-  height: '280px',
-  objectFit: 'cover',
-  transition: 'transform 0.3s ease',
-  position: 'relative',
-  '&:hover': {
-    transform: 'scale(1.05)'
-  }
+  width: "300px",
+  height: "280px",
+  objectFit: "cover",
+  transition: "transform 0.3s ease",
+  position: "relative",
+  "&:hover": {
+    transform: "scale(1.05)",
+  },
+  [theme.breakpoints.down("lg")]: {
+    width: "100%",
+    height: "200px",
+  },
 }));
 
 const ImageCount = styled(Box)(({ theme }) => ({
-  position: 'absolute',
+  position: "absolute",
   bottom: theme.spacing(1),
   right: theme.spacing(1),
-  backgroundColor: 'rgba(0, 0, 0, 0.6)',
-  color: 'white',
-  padding: '4px 8px',
-  borderRadius: '12px',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '4px',
-  fontSize: '0.75rem'
+  backgroundColor: "rgba(0, 0, 0, 0.6)",
+  color: "white",
+  padding: "4px 8px",
+  borderRadius: "12px",
+  display: "flex",
+  alignItems: "center",
+  gap: "4px",
+  fontSize: "0.75rem",
 }));
 
 const ContentWrapper = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  flexDirection: 'column',
+  display: "flex",
+  flexDirection: "column",
   flex: 1,
   padding: theme.spacing(2),
-  position: 'relative'
+  position: "relative",
 }));
 
 const InfoChip = styled(Chip)(({ theme }) => ({
-  backgroundColor: '#f0f7f7',
-  '& .MuiChip-icon': {
-    color: '#17A5AA',
-    fontSize: '1rem'
+  backgroundColor: "#f0f7f7",
+  "& .MuiChip-icon": {
+    color: "#17A5AA",
+    fontSize: "1rem",
   },
-  height: '24px',
-  '& .MuiChip-label': {
-    fontSize: '0.75rem',
-    padding: '0 8px'
-  }
+  height: "24px",
+  "& .MuiChip-label": {
+    fontSize: "0.75rem",
+    padding: "0 8px",
+  },
 }));
 
 const AmenitiesWrapper = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  flexWrap: 'wrap',
+  display: "flex",
+  flexWrap: "wrap",
   gap: theme.spacing(0.5),
-  marginTop: theme.spacing(1)
+  marginTop: theme.spacing(1),
 }));
 
 const AmenityChip = styled(Chip)(({ theme }) => ({
-  backgroundColor: '#f0f7f7',
-  height: '20px',
-  '& .MuiChip-label': {
-    fontSize: '0.7rem',
-    padding: '0 6px'
+  backgroundColor: "#f0f7f7",
+  height: "20px",
+  "& .MuiChip-label": {
+    fontSize: "0.7rem",
+    padding: "0 6px",
   },
-  '& .MuiChip-icon': {
-    color: '#17A5AA',
-    fontSize: '0.9rem'
-  }
+  "& .MuiChip-icon": {
+    color: "#17A5AA",
+    fontSize: "0.9rem",
+  },
 }));
 
 const StyledButton = styled(Button)(({ theme }) => ({
-  backgroundColor: '#17A5AA',
-  color: 'white',
-  '&:hover': {
-    backgroundColor: '#148f94'
+  backgroundColor: "#17A5AA",
+  color: "white",
+  "&:hover": {
+    backgroundColor: "#148f94",
   },
-  fontSize: '0.875rem',
-  textTransform: 'none'
+  fontSize: "0.875rem",
+  textTransform: "none",
 }));
 
 const StyledRating = styled(Rating)(({ theme }) => ({
-  '& .MuiRating-iconFilled': {
-    color: '#17A5AA',
+  "& .MuiRating-iconFilled": {
+    color: "#17A5AA",
   },
-  '& .MuiRating-iconHover': {
-    color: '#148f94',
-  }
+  "& .MuiRating-iconHover": {
+    color: "#148f94",
+  },
 }));
-const PropertyCard = ({ 
-  flat, 
-  isFavorite, 
-  isOwnerView = false, 
-  onToggleFavorite, 
+
+const PropertyCard = ({
+  flat,
+  isFavorite,
+  isOwnerView = false,
+  onToggleFavorite,
   onViewDetails,
   onEdit,
   onDelete,
   onManageMessages,
-  onManageImages
+  onManageImages,
 }) => {
   const getMainImage = () => {
-    const mainImage = flat.images?.find(img => img.isMainImage);
-    return mainImage?.url || flat.images?.[0]?.url || 'https://via.placeholder.com/300x280';
+    const mainImage = flat.images?.find((img) => img.isMainImage);
+    return (
+      mainImage?.url ||
+      flat.images?.[0]?.url ||
+      "https://via.placeholder.com/300x280"
+    );
   };
 
   const formatPrice = (price) => {
-    return price.toLocaleString('es-EC', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
+    return price.toLocaleString("es-EC", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
     });
   };
 
   const formatSimpleDate = (date) => {
-    return new Date(date).toLocaleDateString('es-EC', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
+    return new Date(date).toLocaleDateString("es-EC", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   };
 
   const getMainAmenities = () => {
     const amenities = [];
     if (flat.amenities) {
-      if (flat.amenities.wifi) amenities.push({ icon: <WifiIcon />, label: 'WiFi' });
-      if (flat.amenities.tv) amenities.push({ icon: <TvIcon />, label: 'TV' });
-      if (flat.amenities.kitchen) amenities.push({ icon: <KitchenIcon />, label: 'Cocina' });
-      if (flat.amenities.washer) amenities.push({ icon: <WasherIcon />, label: 'Lavadora' });
-      if (flat.amenities.airConditioning) amenities.push({ icon: <AcUnitIcon />, label: 'A/C' });
-      if (flat.amenities.pool) amenities.push({ icon: <PoolIcon />, label: 'Piscina' });
-      if (flat.amenities.gym) amenities.push({ icon: <GymIcon />, label: 'Gimnasio' });
-      if (flat.amenities.elevator) amenities.push({ icon: <ElevatorIcon />, label: 'Ascensor' });
+      if (flat.amenities.wifi)
+        amenities.push({ icon: <WifiIcon />, label: "WiFi" });
+      if (flat.amenities.tv) amenities.push({ icon: <TvIcon />, label: "TV" });
+      if (flat.amenities.kitchen)
+        amenities.push({ icon: <KitchenIcon />, label: "Cocina" });
+      if (flat.amenities.washer)
+        amenities.push({ icon: <WasherIcon />, label: "Lavadora" });
+      if (flat.amenities.airConditioning)
+        amenities.push({ icon: <AcUnitIcon />, label: "A/C" });
+      if (flat.amenities.pool)
+        amenities.push({ icon: <PoolIcon />, label: "Piscina" });
+      if (flat.amenities.gym)
+        amenities.push({ icon: <GymIcon />, label: "Gimnasio" });
+      if (flat.amenities.elevator)
+        amenities.push({ icon: <ElevatorIcon />, label: "Ascensor" });
       if (flat.amenities.parking?.available) {
-        amenities.push({ 
-          icon: <ParkingIcon />, 
-          label: `Parking ${flat.amenities.parking.type === 'free' ? 'gratis' : 'pagado'}`
+        amenities.push({
+          icon: <ParkingIcon />,
+          label: `Parking ${
+            flat.amenities.parking.type === "free" ? "gratis" : "pagado"
+          }`,
         });
       }
-      if (flat.amenities.petsAllowed) amenities.push({ icon: <PetsIcon />, label: 'Mascotas' });
-      if (flat.amenities.securityCameras) amenities.push({ icon: <SecurityIcon />, label: 'Seguridad' });
+      if (flat.amenities.petsAllowed)
+        amenities.push({ icon: <PetsIcon />, label: "Mascotas" });
+      if (flat.amenities.securityCameras)
+        amenities.push({ icon: <SecurityIcon />, label: "Seguridad" });
     }
     return amenities.slice(0, 8);
   };
 
   return (
     <StyledCard>
-      <Box sx={{ position: 'relative', width: 300 }}>
+      <Box sx={{ position: "relative", width: { xs: "100%", lg: "300px" } }}>
         <StyledCardMedia
           component="img"
           image={getMainImage()}
           alt={flat.title || `Propiedad en ${flat.city}`}
         />
         <ImageCount>
-          <PhotoIcon sx={{ fontSize: '1rem' }} />
+          <PhotoIcon sx={{ fontSize: "1rem" }} />
           {flat.images?.length || 0} fotos
         </ImageCount>
       </Box>
 
       <ContentWrapper>
         <Box sx={{ mb: 1 }}>
-          <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
+          <Stack
+            direction="row"
+            alignItems="flex-start"
+            justifyContent="space-between"
+          >
             <Box>
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.5 }}>
-                <HomeIcon sx={{ color: '#17A5AA', fontSize: '1.2rem' }} />
-                <Typography variant="h6" sx={{ color: '#17A5AA', fontWeight: 600 }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1}
+                sx={{ mb: 0.5 }}
+              >
+                <HomeIcon sx={{ color: "#17A5AA", fontSize: "1.2rem" }} />
+                <Typography
+                  variant="h6"
+                  sx={{ color: "#17A5AA", fontWeight: 600 }}
+                >
                   {flat.title || `${flat.streetName} ${flat.streetNumber}`}
                 </Typography>
               </Stack>
               <Stack direction="row" alignItems="center" spacing={1}>
-                <LocationOnIcon sx={{ color: '#666', fontSize: '1rem' }} />
+                <LocationOnIcon sx={{ color: "#666", fontSize: "1rem" }} />
                 <Typography variant="body2" color="text.secondary">
                   {flat.city}
                 </Typography>
               </Stack>
             </Box>
             {flat.ratings && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <StyledRating
                   value={flat.ratings.overall}
                   readOnly
@@ -246,15 +282,23 @@ const PropertyCard = ({
           </Stack>
         </Box>
 
-        <Stack direction="row" spacing={1} flexWrap="wrap" gap={1} sx={{ mb: 1.5 }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          flexWrap="wrap"
+          gap={1}
+          sx={{ mb: 1.5 }}
+        >
           <InfoChip
             icon={<SingleBedIcon />}
-            label={`${flat.bedrooms} dormitorio${flat.bedrooms !== 1 ? 's' : ''}`}
+            label={`${flat.bedrooms} dormitorio${
+              flat.bedrooms !== 1 ? "s" : ""
+            }`}
             size="small"
           />
           <InfoChip
             icon={<BathtubIcon />}
-            label={`${flat.bathrooms} baño${flat.bathrooms !== 1 ? 's' : ''}`}
+            label={`${flat.bathrooms} baño${flat.bathrooms !== 1 ? "s" : ""}`}
             size="small"
           />
           <InfoChip
@@ -275,7 +319,7 @@ const PropertyCard = ({
         </Stack>
 
         <Box>
-          <Typography variant="subtitle2" sx={{ mb: 0.5, color: '#666' }}>
+          <Typography variant="subtitle2" sx={{ mb: 0.5, color: "#666" }}>
             Amenities
           </Typography>
           <AmenitiesWrapper>
@@ -293,24 +337,30 @@ const PropertyCard = ({
 
         <Divider sx={{ my: 1.5 }} />
 
-        <Box sx={{ mt: 'auto' }}>
+        <Box sx={{ mt: "auto" }}>
           <Stack direction="row" spacing={2} sx={{ mb: 1 }}>
             <Stack direction="row" alignItems="center" spacing={0.5}>
-              <EventAvailableIcon sx={{ color: '#666', fontSize: '0.875rem' }} />
+              <EventAvailableIcon
+                sx={{ color: "#666", fontSize: "0.875rem" }}
+              />
               <Typography variant="caption" color="text.secondary">
                 Disponible: {formatSimpleDate(flat.dateAvailable)}
               </Typography>
             </Stack>
             <Stack direction="row" alignItems="center" spacing={0.5}>
-              <UpdateIcon sx={{ color: '#666', fontSize: '0.875rem' }} />
+              <UpdateIcon sx={{ color: "#666", fontSize: "0.875rem" }} />
               <Typography variant="caption" color="text.secondary">
                 Actualizado: {formatSimpleDate(flat.atUpdated)}
               </Typography>
             </Stack>
           </Stack>
 
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="h5" sx={{ fontWeight: 800, color: '#17A5AA' }}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Typography variant="h5" sx={{ fontWeight: 800, color: "#17A5AA" }}>
               {formatPrice(flat.rentPrice)}
               <Typography component="span" variant="caption" sx={{ ml: 0.5 }}>
                 /mes
@@ -324,12 +374,12 @@ const PropertyCard = ({
                       size="small"
                       onClick={() => onEdit(flat._id)}
                       sx={{
-                        bgcolor: 'white',
+                        bgcolor: "white",
                         boxShadow: 1,
-                        '&:hover': { bgcolor: '#f0f7f7' }
+                        "&:hover": { bgcolor: "#f0f7f7" },
                       }}
                     >
-                      <EditIcon sx={{ color: '#666' }} />
+                      <EditIcon sx={{ color: "#666" }} />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Gestionar imágenes">
@@ -337,12 +387,12 @@ const PropertyCard = ({
                       size="small"
                       onClick={() => onManageImages(flat._id)}
                       sx={{
-                        bgcolor: 'white',
+                        bgcolor: "white",
                         boxShadow: 1,
-                        '&:hover': { bgcolor: '#f0f7f7' }
+                        "&:hover": { bgcolor: "#f0f7f7" },
                       }}
                     >
-                      <CollectionsIcon sx={{ color: '#666' }} />
+                      <CollectionsIcon sx={{ color: "#666" }} />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Eliminar propiedad">
@@ -350,12 +400,12 @@ const PropertyCard = ({
                       size="small"
                       onClick={() => onDelete(flat._id)}
                       sx={{
-                        bgcolor: 'white',
+                        bgcolor: "white",
                         boxShadow: 1,
-                        '&:hover': { bgcolor: '#fff5f5' }
+                        "&:hover": { bgcolor: "#fff5f5" },
                       }}
                     >
-                      <DeleteIcon sx={{ color: '#666' }} />
+                      <DeleteIcon sx={{ color: "#666" }} />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Gestionar mensajes">
@@ -363,12 +413,12 @@ const PropertyCard = ({
                       size="small"
                       onClick={() => onManageMessages(flat._id)}
                       sx={{
-                        bgcolor: 'white',
+                        bgcolor: "white",
                         boxShadow: 1,
-                        '&:hover': { bgcolor: '#f0f7f7' }
+                        "&:hover": { bgcolor: "#f0f7f7" },
                       }}
                     >
-                      <MessageIcon sx={{ color: '#666' }} />
+                      <MessageIcon sx={{ color: "#666" }} />
                     </IconButton>
                   </Tooltip>
                 </>
@@ -377,15 +427,15 @@ const PropertyCard = ({
                   size="small"
                   onClick={() => onToggleFavorite(flat._id)}
                   sx={{
-                    bgcolor: 'white',
+                    bgcolor: "white",
                     boxShadow: 1,
-                    '&:hover': { bgcolor: '#fff5f5' }
+                    "&:hover": { bgcolor: "#fff5f5" },
                   }}
                 >
                   {isFavorite ? (
-                    <FavoriteIcon sx={{ color: '#ff4d4d' }} />
+                    <FavoriteIcon sx={{ color: "#ff4d4d" }} />
                   ) : (
-                    <FavoriteBorderIcon sx={{ color: '#666' }} />
+                    <FavoriteBorderIcon sx={{ color: "#666" }} />
                   )}
                 </IconButton>
               )}
