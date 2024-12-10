@@ -973,7 +973,7 @@ return (
       </DialogContent>
       <DialogActions>
         <StyledButton 
-          variant="outlined"
+          variant="contained"
           onClick={() => setOpenReviewDialog(false)}
         >
           Cancel
