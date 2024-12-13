@@ -49,14 +49,15 @@ import {
   Pets as PetsIcon,
   Security as SecurityIcon,
   Check as CheckIcon,
-  Clear as ClearIcon
+  Clear as ClearIcon,
+  Reply as ReplyIcon,
+  ExpandMore as ExpandMoreIcon
 } from "@mui/icons-material";
 import axios from "axios";
 
 const PRIMARY_COLOR = 'rgb(23, 165, 170)';
 const PRIMARY_HOVER = 'rgb(18, 140, 145)';
 
-// Componentes estilizados
 const MainImage = styled("img")({
   width: "100%",
   height: "400px",
@@ -160,9 +161,11 @@ const StyledRating = styled(Rating)({
     color: PRIMARY_HOVER,
   },
 });
+
 const DetailsFlatPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  
   const [selectedTab, setSelectedTab] = useState(0);
   const [mainImageUrl, setMainImageUrl] = useState("");
   const [flat, setFlat] = useState(null);
@@ -172,6 +175,8 @@ const DetailsFlatPage = () => {
   const [openReviewDialog, setOpenReviewDialog] = useState(false);
   const [openContactDialog, setOpenContactDialog] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [flatOwner, setFlatOwner] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
   
   const [contactForm, setContactForm] = useState({
     name: '',
@@ -180,9 +185,9 @@ const DetailsFlatPage = () => {
     message: ''
   });
 
-  const [newReview, setNewReview] = useState({ 
-    content: "", 
-    rating: { 
+  const [newReview, setNewReview] = useState({
+    content: "",
+    rating: {
       overall: 5,
       aspects: {
         cleanliness: 5,
@@ -194,12 +199,11 @@ const DetailsFlatPage = () => {
     }
   });
   
-  const [snackbar, setSnackbar] = useState({ 
-    open: false, 
-    message: '', 
-    severity: 'success' 
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
   });
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -209,31 +213,53 @@ const DetailsFlatPage = () => {
         const config = token ? {
           headers: { Authorization: `Bearer ${token}` }
         } : {};
-
-        const [flatResponse, reviewsResponse, userResponse] = await Promise.all([
-          axios.get(`http://localhost:8080/flats/${id}`),
-          axios.get(`http://localhost:8080/messages/flat/${id}`),
-          token ? axios.get('http://localhost:8080/users/profile', config) : null
-        ].filter(Boolean));
-
+  
+        // Primero obtenemos los datos del flat
+        const flatResponse = await axios.get(`http://localhost:8080/flats/${id}`);
+  
         if (flatResponse?.data?.success) {
           setFlat(flatResponse.data.data);
           if (flatResponse.data.data.images?.length > 0) {
             setMainImageUrl(flatResponse.data.data.images[0].url);
           }
+  
+          // Solo si tenemos el ID del propietario y es un string válido
+          if (typeof flatResponse.data.data.owner === 'string') {
+            // Obtener información del propietario con el token en los headers
+            const ownerResponse = await axios.get(
+              `http://localhost:8080/users/${flatResponse.data.data.owner}`,
+              config
+            );
+            if (ownerResponse.data.success) {
+              setFlatOwner(ownerResponse.data.data);
+            }
+          }
         } else {
           throw new Error("No se pudo cargar la información del inmueble");
         }
-
+  
+        // Obtener reseñas
+        const reviewsResponse = await axios.get(
+          `http://localhost:8080/messages/flat/${id}`,
+          config
+        );
         if (reviewsResponse?.data?.success) {
           setReviews(reviewsResponse.data.data);
         }
-
-        if (userResponse?.data?.success) {
-          const userFavorites = userResponse.data.data.favoriteFlats || [];
-          setIsFavorite(userFavorites.includes(id));
+  
+        // Si hay token, obtener perfil del usuario actual
+        if (token) {
+          const userResponse = await axios.get(
+            'http://localhost:8080/users/profile',
+            config
+          );
+          if (userResponse?.data?.success) {
+            setCurrentUser(userResponse.data.data);
+            const userFavorites = userResponse.data.data.favoriteFlats || [];
+            setIsFavorite(userFavorites.includes(id));
+          }
         }
-
+  
       } catch (err) {
         const errorMessage = err.response?.data?.message || 
                            err.message || 
@@ -244,7 +270,7 @@ const DetailsFlatPage = () => {
         setLoading(false);
       }
     };
-
+  
     fetchData();
   }, [id]);
 
@@ -267,9 +293,21 @@ const DetailsFlatPage = () => {
 
   const handleContactSubmit = async () => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
       const response = await axios.post(
         `http://localhost:8080/flats/${id}/contact`,
-        contactForm
+        contactForm,
+        {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
 
       if (response.data.success) {
@@ -289,6 +327,7 @@ const DetailsFlatPage = () => {
       });
     }
   };
+
   const handleSubmitReview = async () => {
     try {
       if (!newReview.content.trim()) {
@@ -388,15 +427,52 @@ const DetailsFlatPage = () => {
     }
   };
 
-  // Constantes para controlar la visualización de elementos
-  const showMainImage = flat?.images?.length > 0 && mainImageUrl;
-  const showThumbnails = flat?.images?.length > 0;
-  const showAmenities = flat?.amenities && Object.keys(flat.amenities).some(key => flat.amenities[key]);
-  const showHouseRules = flat?.houseRules;
-  const showLocation = flat?.location;
-  const showAvailability = flat?.availability;
+  const handleReplySubmit = async (messageId, content) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
 
-  // Estados de carga y error
+      const response = await axios.post(
+        `http://localhost:8080/messages/${messageId}/reply`,
+        { content },
+        {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setReviews(prevReviews => 
+          prevReviews.map(review => 
+            review._id === messageId 
+              ? { 
+                  ...review, 
+                  replies: [...(review.replies || []), response.data.data] 
+                }
+              : review
+          )
+        );
+        
+        setSnackbar({
+          open: true,
+          message: 'Respuesta enviada exitosamente',
+          severity: 'success'
+        });
+      }
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || 'Error al enviar la respuesta',
+        severity: 'error'
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -414,6 +490,14 @@ const DetailsFlatPage = () => {
       </Box>
     );
   }
+
+  const showMainImage = flat?.images?.length > 0 && mainImageUrl;
+  const showThumbnails = flat?.images?.length > 0;
+  const showAmenities = flat?.amenities && Object.keys(flat.amenities).some(key => flat.amenities[key]);
+  const showHouseRules = flat?.houseRules;
+  const showLocation = flat?.location;
+  const showAvailability = flat?.availability;
+
   return (
     <Box sx={{ p: 4, maxWidth: 1200, margin: "0 auto" }}>
       {/* Header Navigation */}
@@ -486,7 +570,7 @@ const DetailsFlatPage = () => {
           </Grid>
         </Grid>
 
-        {/* Main Content Section inicia aquí */}
+        {/* Main Content Section */}
         <Grid item xs={12} md={8}>
           <StyledPaper>
             <Typography variant="h4" gutterBottom fontWeight="bold" color="text.primary">
@@ -510,6 +594,7 @@ const DetailsFlatPage = () => {
               <StyledTab label="Ubicación" />
               <StyledTab label="Comodidades" />
             </StyledTabs>
+
             {/* Tab de Detalles */}
             {selectedTab === 0 && (
               <Box>
@@ -568,7 +653,6 @@ const DetailsFlatPage = () => {
                     </FeatureItem>
                   </Grid>
                 </Grid>
-
                 <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>Descripción</Typography>
                 <Typography variant="body1" sx={{ mb: 3 }}>
                   {flat.description}
@@ -636,6 +720,7 @@ const DetailsFlatPage = () => {
                 )}
               </Box>
             )}
+
             {/* Tab de Ubicación */}
             {selectedTab === 1 && showLocation && (
               <Box>
@@ -781,7 +866,6 @@ const DetailsFlatPage = () => {
                     </Grid>
                   )}
                 </Grid>
-
                 {/* Sección de Estacionamiento */}
                 {flat.amenities?.parking?.available && (
                   <Box sx={{ mt: 3 }}>
@@ -810,6 +894,7 @@ const DetailsFlatPage = () => {
             )}
           </StyledPaper>
         </Grid>
+
         {/* Panel Lateral */}
         <Grid item xs={12} md={4}>
           <StyledPaper>
@@ -940,194 +1025,376 @@ const DetailsFlatPage = () => {
               </Typography>
             ) : (
               reviews.map((review) => (
-                <ReviewContainer key={review._id}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                    <Avatar src={review.author?.profileImage} />
-                    <Box>
-                      <Typography variant="subtitle1">
-                        {review.author?.firstName} {review.author?.lastName}
+                <Paper 
+                  key={review._id}
+                  elevation={3} 
+                  sx={{ 
+                    p: 3, 
+                    mb: 2, 
+                    borderRadius: 2,
+                    '&:hover': {
+                      boxShadow: '0 6px 16px rgba(0,0,0,0.1)',
+                    }
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                    <Avatar 
+                      src={review.author?.profileImage}
+                      sx={{ width: 40, height: 40 }}
+                    />
+                    <Box sx={{ flex: 1 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="subtitle1" fontWeight="medium">
+                          {review.author?.firstName} {review.author?.lastName}
+                          {review.author?._id === flatOwner?._id && (
+                            <Typography 
+                              component="span" 
+                              sx={{ 
+                                ml: 1,
+                                px: 1, 
+                                py: 0.5, 
+                                bgcolor: `${PRIMARY_COLOR}20`,
+                                color: PRIMARY_COLOR,
+                                borderRadius: 1,
+                                fontSize: '0.75rem'
+                              }}
+                            >
+                              Propietario
+                            </Typography>
+                          )}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {formatDate(review.atCreated)}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, my: 1 }}>
+                        <StyledRating value={review.rating?.overall || 0} precision={0.5} readOnly size="small" />
+                      </Box>
+                      <Typography variant="body1">
+                        {review.content}
                       </Typography>
-                      <StyledRating value={review.rating?.overall} readOnly />
+
+                      {/* Aspectos calificados */}
+                      {review.rating?.aspects && (
+                        <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                          {Object.entries(review.rating.aspects).map(([aspect, value]) => (
+                            <Box key={aspect} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="caption" color="text.secondary">
+                                {aspect === 'cleanliness' ? 'Limpieza' :
+                                 aspect === 'communication' ? 'Comunicación' :
+                                 aspect === 'location' ? 'Ubicación' :
+                                 aspect === 'accuracy' ? 'Precisión' :
+                                 aspect === 'value' ? 'Valor' : aspect}:
+                              </Typography>
+                              <StyledRating value={value} readOnly size="small" />
+                            </Box>
+                          ))}
+                        </Box>
+                      )}
                     </Box>
-                    <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
-                      {formatDate(review.atCreated)}
-                    </Typography>
                   </Box>
-                  <Typography>{review.content}</Typography>
-                </ReviewContainer>
+
+                  {/* Sección de respuestas */}
+                  <Box sx={{ ml: 7 }}>
+                    {((currentUser?._id === flatOwner?._id && !review.parentMessage) ||
+                      (review.parentMessage && review.author?._id === flatOwner?._id && currentUser?._id === review.parentMessage.author?._id)) && (
+                      <Button
+                        startIcon={<ReplyIcon />}
+                        onClick={() => {
+                          const messageElement = document.getElementById(`reply-form-${review._id}`);
+                          if (messageElement) {
+                            messageElement.style.display = messageElement.style.display === 'none' ? 'block' : 'none';
+                          }
+                        }}
+                        sx={{ 
+                          color: PRIMARY_COLOR,
+                          '&:hover': {
+                            bgcolor: `${PRIMARY_COLOR}10`
+                          }
+                        }}
+                      >
+                        Responder
+                      </Button>
+                    )}
+
+                    {/* Formulario de respuesta */}
+                    <Box id={`reply-form-${review._id}`} sx={{ display: 'none', mt: 2 }}>
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={2}
+                        placeholder="Escribe tu respuesta..."
+                        onChange={(e) => {
+                          const replyContent = e.target.value;
+                          if (replyContent.trim()) {
+                            const messageElement = document.getElementById(`reply-button-${review._id}`);
+                            if (messageElement) {
+                              messageElement.disabled = false;
+                            }
+                          }
+                        }}
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            '&.Mui-focused fieldset': {
+                              borderColor: PRIMARY_COLOR,
+                            }
+                          }
+                        }}
+                      />
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, gap: 1 }}>
+                        <Button 
+                          onClick={() => {
+                            const messageElement = document.getElementById(`reply-form-${review._id}`);
+                            if (messageElement) {
+                              messageElement.style.display = 'none';
+                            }
+                          }}
+                          sx={{ color: 'text.secondary' }}
+                        >
+                          Cancelar
+                        </Button>
+                        <Button
+                          id={`reply-button-${review._id}`}
+                          variant="contained"
+                          onClick={(e) => {
+                            const form = document.getElementById(`reply-form-${review._id}`);
+                            const content = form?.querySelector('textarea')?.value;
+                            if (content) {
+                              handleReplySubmit(review._id, content);
+                              form.style.display = 'none';
+                            }
+                          }}
+                          disabled={true}
+                          sx={{
+                            bgcolor: PRIMARY_COLOR,
+                            '&:hover': {
+                              bgcolor: PRIMARY_HOVER
+                            }
+                          }}
+                        >
+                          Responder
+                        </Button>
+                      </Box>
+                    </Box>
+
+                    {/* Mostrar respuestas existentes */}
+                    {review.replies?.length > 0 && (
+                      <Box sx={{ mt: 2 }}>
+                        {review.replies.map((reply) => (
+                          <Box key={reply._id} sx={{ mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                              <Avatar 
+                                src={reply.author?.profileImage}
+                                sx={{ width: 32, height: 32 }}
+                              />
+                              <Box sx={{ flex: 1 }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <Typography variant="subtitle2">
+                                    {reply.author?.firstName} {reply.author?.lastName}
+                                    {reply.author?._id === flatOwner?._id && (
+                                      <Typography 
+                                        component="span" 
+                                        sx={{ 
+                                          ml: 1,
+                                          px: 1, 
+                                          py: 0.5, 
+                                          bgcolor: `${PRIMARY_COLOR}20`,
+                                          color: PRIMARY_COLOR,
+                                          borderRadius: 1,
+                                          fontSize: '0.75rem'
+                                        }}
+                                      >
+                                        Propietario
+                                      </Typography>
+                                    )}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {formatDate(reply.atCreated)}
+                                  </Typography>
+                                </Box>
+                                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                  {reply.content}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                </Paper>
               ))
             )}
           </StyledPaper>
         </Grid>
-      </Grid>
+        {/* Diálogo de Contacto */}
+        <Dialog
+          open={openContactDialog}
+          onClose={() => setOpenContactDialog(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ color: PRIMARY_COLOR }}>Comunícate con el dueño del flat</DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <TextField
+                label="Nombre completo"
+                fullWidth
+                value={contactForm.name}
+                onChange={(e) => setContactForm(prev => ({ ...prev, name: e.target.value }))}
+              />
+              <TextField
+                label="Cédula"
+                fullWidth
+                value={contactForm.cedula}
+                onChange={(e) => setContactForm(prev => ({ ...prev, cedula: e.target.value }))}
+              />
+              <TextField
+                label="Correo electrónico"
+                fullWidth
+                type="email"
+                value={contactForm.email}
+                onChange={(e) => setContactForm(prev => ({ ...prev, email: e.target.value }))}
+              />
+              <TextField
+                label="Mensaje"
+                multiline
+                rows={4}
+                fullWidth
+                value={contactForm.message}
+                onChange={(e) => setContactForm(prev => ({ ...prev, message: e.target.value }))}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setOpenContactDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="contained" 
+              onClick={handleContactSubmit}
+              sx={{ backgroundColor: PRIMARY_COLOR }}
+            >
+              Enviar
+            </Button>
+          </DialogActions>
+        </Dialog>
 
-      {/* Diálogo de Contacto */}
-      <Dialog
-        open={openContactDialog}
-        onClose={() => setOpenContactDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ color: PRIMARY_COLOR }}>Comunícate con el dueño del flat</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              label="Nombre completo"
-              fullWidth
-              value={contactForm.name}
-              onChange={(e) => setContactForm(prev => ({ ...prev, name: e.target.value }))}
-            />
-            <TextField
-              label="Cédula"
-              fullWidth
-              value={contactForm.cedula}
-              onChange={(e) => setContactForm(prev => ({ ...prev, cedula: e.target.value }))}
-            />
-            <TextField
-              label="Correo electrónico"
-              fullWidth
-              type="email"
-              value={contactForm.email}
-              onChange={(e) => setContactForm(prev => ({ ...prev, email: e.target.value }))}
-            />
-            <TextField
-              label="Mensaje"
-              multiline
-              rows={4}
-              fullWidth
-              value={contactForm.message}
-              onChange={(e) => setContactForm(prev => ({ ...prev, message: e.target.value }))}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenContactDialog(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            variant="contained" 
-            onClick={handleContactSubmit}
-            sx={{ backgroundColor: PRIMARY_COLOR }}
-          >
-            Enviar
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Diálogo de Reseña */}
-      <Dialog 
-        open={openReviewDialog} 
-        onClose={() => setOpenReviewDialog(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: '12px',
-          }
-        }}
-      >
-        <DialogTitle sx={{ color: PRIMARY_COLOR }}>Escribir una Reseña</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2 }}>
-            <Typography variant="subtitle1" gutterBottom>Calificación General</Typography>
-            <StyledRating
-              value={newReview.rating.overall}
-              onChange={(_, value) => setNewReview(prev => ({
-                ...prev,
-                rating: { ...prev.rating, overall: value }
-              }))}
-              sx={{ mb: 2 }}
-            />
-
-            <Typography variant="subtitle1" gutterBottom>Aspectos</Typography>
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              {Object.entries(newReview.rating.aspects).map(([aspect, value]) => (
-                <Grid item xs={12} key={aspect}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                      {
-                        aspect === 'cleanliness' ? 'Limpieza' :
-                        aspect === 'communication' ? 'Comunicación' :
-                        aspect === 'location' ? 'Ubicación' :
-                        aspect === 'accuracy' ? 'Precisión' :
-                        aspect === 'value' ? 'Valor' : aspect
-                      }
-                    </Typography>
-                    <StyledRating
-                      value={value}
-                      onChange={(_, newValue) => setNewReview(prev => ({
-                        ...prev,
-                        rating: {
-                          ...prev.rating,
-                          aspects: {
-                            ...prev.rating.aspects,
-                            [aspect]: newValue
-                          }
-                        }
-                      }))}
-                      size="small"
-                    />
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
-
-            <TextField
-              multiline
-              rows={4}
-              fullWidth
-              placeholder="Comparte tu experiencia..."
-              value={newReview.content}
-              onChange={(e) => setNewReview(prev => ({ 
-                ...prev, 
-                content: e.target.value 
-              }))}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '&.Mui-focused fieldset': {
-                    borderColor: PRIMARY_COLOR,
-                  },
-                },
-              }}
-            />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <StyledButton 
-            variant="outlined"
-            onClick={() => setOpenReviewDialog(false)}
-          >
-            Cancelar
-          </StyledButton>
-          <StyledButton 
-            variant="contained"
-            onClick={handleSubmitReview}
-            disabled={!newReview.content.trim() || !newReview.rating.overall}
-          >
-            Publicar
-          </StyledButton>
-        </DialogActions>
-      </Dialog>
-
-      {/* Snackbar para Notificaciones */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-      >
-        <Alert 
-          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{
-            backgroundColor: snackbar.severity === 'success' ? PRIMARY_COLOR : undefined
+        {/* Diálogo de Reseña */}
+        <Dialog 
+          open={openReviewDialog} 
+          onClose={() => setOpenReviewDialog(false)}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: '12px',
+            }
           }}
         >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+          <DialogTitle sx={{ color: PRIMARY_COLOR }}>Escribir una Reseña</DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 2 }}>
+              <Typography variant="subtitle1" gutterBottom>Calificación General</Typography>
+              <StyledRating
+                value={newReview.rating.overall}
+                onChange={(_, value) => setNewReview(prev => ({
+                  ...prev,
+                  rating: { ...prev.rating, overall: value }
+                }))}
+                sx={{ mb: 2 }}
+              />
+
+              <Typography variant="subtitle1" gutterBottom>Aspectos</Typography>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                {Object.entries(newReview.rating.aspects).map(([aspect, value]) => (
+                  <Grid item xs={12} key={aspect}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                        {
+                          aspect === 'cleanliness' ? 'Limpieza' :
+                          aspect === 'communication' ? 'Comunicación' :
+                          aspect === 'location' ? 'Ubicación' :
+                          aspect === 'accuracy' ? 'Precisión' :
+                          aspect === 'value' ? 'Valor' : aspect
+                        }
+                      </Typography>
+                      <StyledRating
+                        value={value}
+                        onChange={(_, newValue) => setNewReview(prev => ({
+                          ...prev,
+                          rating: {
+                            ...prev.rating,
+                            aspects: {
+                              ...prev.rating.aspects,
+                              [aspect]: newValue
+                            }
+                          }
+                        }))}
+                        size="small"
+                      />
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+
+              <TextField
+                multiline
+                rows={4}
+                fullWidth
+                placeholder="Comparte tu experiencia..."
+                value={newReview.content}
+                onChange={(e) => setNewReview(prev => ({ 
+                  ...prev, 
+                  content: e.target.value 
+                }))}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '&.Mui-focused fieldset': {
+                      borderColor: PRIMARY_COLOR,
+                    },
+                  },
+                }}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <StyledButton 
+              variant="outlined"
+              onClick={() => setOpenReviewDialog(false)}
+            >
+              Cancelar
+            </StyledButton>
+            <StyledButton 
+              variant="contained"
+              onClick={handleSubmitReview}
+              disabled={!newReview.content.trim() || !newReview.rating.overall}
+            >
+              Publicar
+            </StyledButton>
+          </DialogActions>
+        </Dialog>
+
+        {/* Snackbar para Notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={4000}
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        >
+          <Alert 
+            onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
+            severity={snackbar.severity}
+            variant="filled"
+            sx={{
+              backgroundColor: snackbar.severity === 'success' ? PRIMARY_COLOR : undefined
+            }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </Grid>
     </Box>
   );
-}
+};
 
 export default DetailsFlatPage;
