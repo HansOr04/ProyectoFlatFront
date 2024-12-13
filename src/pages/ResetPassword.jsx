@@ -1,12 +1,15 @@
+// ResetPassword.jsx
 import React, { useState } from "react";
-import { TextField, Button, Container, Typography, Box } from "@mui/material";
+import { useParams, useNavigate } from "react-router-dom";
+import { TextField, Button, Container, Typography, Box, Alert } from "@mui/material";
 import styled from "styled-components";
+import axios from "axios";
 
 const PageContainer = styled(Container)`
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh; /* Ocupa toda la altura de la ventana */
+  height: 100vh;
 `;
 
 const FormContainer = styled(Box)`
@@ -34,18 +37,52 @@ const StyledButton = styled(Button)`
 `;
 
 const ResetPassword = () => {
+  const { token } = useParams();
+  const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setIsLoading(true);
+
+    // Validaciones del lado del cliente
     if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden");
+      setIsLoading(false);
       return;
     }
-    // Aquí puedes agregar la lógica para restablecer la contraseña
-    console.log("Contraseña restablecida");
+
+    if (password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await axios.post(`/api/auth/reset-password/${token}`, {
+        password,
+        confirmPassword
+      });
+
+      if (response.data.success) {
+        setSuccess(true);
+        setPassword("");
+        setConfirmPassword("");
+        // Redirigir al login después de 3 segundos
+        setTimeout(() => {
+          navigate('/login');
+        }, 3000);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Error al restablecer la contraseña");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -55,41 +92,50 @@ const ResetPassword = () => {
           variant="h4"
           component="h1"
           gutterBottom
-          sx={{ color: "#0E3F33" }}
+          sx={{ color: "#0E3F33", marginBottom: "2rem" }}
         >
           Restablecer Contraseña
         </Typography>
-        <form onSubmit={handleSubmit}>
-          <StyledTextField
-            label="Nueva Contraseña"
-            type="password"
-            fullWidth
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <StyledTextField
-            label="Confirmar Contraseña"
-            type="password"
-            fullWidth
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-          />
-          {error && (
-            <Typography color="error" variant="body2" gutterBottom>
-              {error}
-            </Typography>
-          )}
-          <StyledButton
-            type="submit"
-            variant="contained"
-            fullWidth
-            color="primary"
-          >
-            Restablecer Contraseña
-          </StyledButton>
-        </form>
+        
+        {success ? (
+          <Alert severity="success" sx={{ width: '100%', marginBottom: '1rem' }}>
+            Contraseña restablecida exitosamente. Serás redirigido al login...
+          </Alert>
+        ) : (
+          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+            <StyledTextField
+              label="Nueva Contraseña"
+              type="password"
+              fullWidth
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              helperText="Mínimo 8 caracteres, debe incluir números y mayúsculas"
+            />
+            <StyledTextField
+              label="Confirmar Contraseña"
+              type="password"
+              fullWidth
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
+            {error && (
+              <Alert severity="error" sx={{ marginBottom: '1rem' }}>
+                {error}
+              </Alert>
+            )}
+            <StyledButton
+              type="submit"
+              variant="contained"
+              fullWidth
+              color="primary"
+              disabled={isLoading}
+            >
+              {isLoading ? "Procesando..." : "Restablecer Contraseña"}
+            </StyledButton>
+          </form>
+        )}
       </FormContainer>
     </PageContainer>
   );

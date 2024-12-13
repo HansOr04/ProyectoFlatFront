@@ -29,6 +29,7 @@ import {
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+// Función auxiliar para los headers de autenticación
 const getAuthHeaders = (isFormData = false) => {
     const token = localStorage.getItem('token');
     const headers = {
@@ -40,6 +41,7 @@ const getAuthHeaders = (isFormData = false) => {
     return headers;
 };
 
+// Componente de botón con estado de carga
 const LoadingButton = ({ loading, children, ...props }) => (
     <Button disabled={loading} {...props}>
         {loading ? (
@@ -51,6 +53,106 @@ const LoadingButton = ({ loading, children, ...props }) => (
     </Button>
 );
 
+// Componente Dialog para mensajes
+const MessageDialog = ({ open, onClose, messages, submitting, toggleMessageVisibility }) => {
+    const [filter, setFilter] = useState('visible');
+
+    const visibleMessages = messages.filter(msg => !msg.isHidden);
+    const hiddenMessages = messages.filter(msg => msg.isHidden);
+
+    return (
+        <Dialog 
+            open={open} 
+            onClose={() => !submitting && onClose()}
+            maxWidth="md"
+            fullWidth
+        >
+            <DialogTitle>Gestionar Mensajes</DialogTitle>
+            <DialogContent>
+                <Box sx={{ mb: 2, mt: 1 }}>
+                    <Button
+                        variant={filter === 'visible' ? 'contained' : 'outlined'}
+                        onClick={() => setFilter('visible')}
+                        sx={{ mr: 1 }}
+                    >
+                        Mensajes Visibles ({visibleMessages.length})
+                    </Button>
+                    <Button
+                        variant={filter === 'hidden' ? 'contained' : 'outlined'}
+                        onClick={() => setFilter('hidden')}
+                        color="secondary"
+                    >
+                        Mensajes Ocultos ({hiddenMessages.length})
+                    </Button>
+                </Box>
+
+                <Stack spacing={2}>
+                    {(filter === 'visible' ? visibleMessages : hiddenMessages).map((message) => (
+                        <Paper 
+                            key={message._id} 
+                            elevation={1} 
+                            sx={{ 
+                                p: 2,
+                                bgcolor: filter === 'hidden' ? 'grey.100' : 'white'
+                            }}
+                        >
+                            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                                <Box>
+                                    <Typography variant="subtitle1" fontWeight="bold">
+                                        {message.author.firstName} {message.author.lastName}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        {new Date(message.atCreated).toLocaleDateString('es-ES', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </Typography>
+                                </Box>
+                                <Tooltip title={message.isHidden ? "Mostrar mensaje" : "Ocultar mensaje"}>
+                                    <IconButton 
+                                        onClick={() => toggleMessageVisibility(message._id)}
+                                        size="small"
+                                        disabled={submitting}
+                                    >
+                                        {message.isHidden ? 
+                                            <VisibilityOffIcon color="action" /> : 
+                                            <VisibilityIcon color="primary" />}
+                                    </IconButton>
+                                </Tooltip>
+                            </Box>
+                            <Typography variant="body1">
+                                {message.content}
+                            </Typography>
+                            {message.rating && (
+                                <Box display="flex" alignItems="center" gap={1} mt={1}>
+                                    <StarIcon sx={{ color: 'gold' }} />
+                                    <Typography>
+                                        {message.rating.overall} / 5
+                                    </Typography>
+                                </Box>
+                            )}
+                        </Paper>
+                    ))}
+                    {(filter === 'visible' ? visibleMessages : hiddenMessages).length === 0 && (
+                        <Alert severity="info">
+                            No hay mensajes {filter === 'visible' ? 'visibles' : 'ocultos'}
+                        </Alert>
+                    )}
+                </Stack>
+            </DialogContent>
+            <DialogActions>
+                <Button onClick={onClose}>
+                    Cerrar
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+};
+
+// Componente principal MyApartments
 const MyApartments = () => {
     const [apartments, setApartments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -72,36 +174,51 @@ const MyApartments = () => {
         fetchMyApartments();
     }, []);
 
-    // Modificar la función fetchMyApartments
-const fetchMyApartments = async () => {
-    try {
-        setLoading(true);
-        const token = localStorage.getItem('token');
-        
-        if (!token) {
-            navigate('/login');
-            return;
-        }
-
-        // Usar el endpoint existente con el parámetro owner: true
-        const response = await axios.get('http://localhost:8080/flats', {
-            headers: getAuthHeaders(),
-            params: {
-                owner: 'true'  // Asegurarse de que se envía como string
+    const fetchMyApartments = async () => {
+        try {
+            setLoading(true);
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                navigate('/login');
+                return;
             }
-        });
-
-        if (response.data.success) {
-            setApartments(response.data.data);
-        } else {
-            setError('No se pudieron cargar los departamentos');
+    
+            // Primero obtenemos el perfil del usuario para conseguir su ID
+            const userResponse = await axios.get('http://localhost:8080/users/profile', {
+                headers: getAuthHeaders()
+            });
+    
+            if (!userResponse.data.success) {
+                throw new Error('No se pudo obtener la información del usuario');
+            }
+    
+            const userId = userResponse.data.data._id;
+    
+            // Luego obtenemos los flats filtrando por el owner
+            const flatsResponse = await axios.get('http://localhost:8080/flats', {
+                headers: getAuthHeaders(),
+                params: {
+                    owner: 'true',
+                    userId: userId  // Añadimos el ID del usuario como parámetro
+                }
+            });
+    
+            if (flatsResponse.data.success) {
+                // Filtramos los flats que pertenecen al usuario
+                const userFlats = flatsResponse.data.data.filter(flat => flat.owner._id === userId);
+                setApartments(userFlats);
+            } else {
+                throw new Error('No se pudieron cargar los departamentos');
+            }
+    
+        } catch (error) {
+            setError(error.response?.data?.message || 'Error al cargar tus departamentos');
+            console.error('Error detallado:', error);
+        } finally {
+            setLoading(false);
         }
-    } catch (error) {
-        setError(error.response?.data?.message || 'Error al cargar los departamentos');
-    } finally {
-        setLoading(false);
-    }
-};
+    };
 
     const handleEdit = (flatId) => {
         navigate(`/apartments/edit/${flatId}`);
@@ -163,7 +280,6 @@ const fetchMyApartments = async () => {
             setSubmitting(false);
         }
     };
-
     const handleManageImages = async (flatId) => {
         const flat = apartments.find(apt => apt._id === flatId);
         setSelectedFlat(flatId);
@@ -232,7 +348,7 @@ const fetchMyApartments = async () => {
                 formData.append('mainImageId', mainImageId);
             }
 
-            const response = await axios.put(
+            await axios.put(
                 `http://localhost:8080/flats/${selectedFlat}/images`,
                 formData,
                 {
@@ -329,55 +445,13 @@ const fetchMyApartments = async () => {
             </Dialog>
 
             {/* Modal de Mensajes */}
-            <Dialog 
-                open={openMessagesDialog} 
-                onClose={() => !submitting && setOpenMessagesDialog(false)}
-                maxWidth="md"
-                fullWidth
-            >
-                <DialogTitle>Gestionar Mensajes</DialogTitle>
-                <DialogContent>
-                    <Stack spacing={2}>
-                        {messages.map((message) => (
-                            <Paper key={message._id} elevation={1} sx={{ p: 2 }}>
-                                <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
-                                    <Typography variant="subtitle1" fontWeight="bold">
-                                        {message.author.firstName} {message.author.lastName}
-                                    </Typography>
-                                    <Tooltip title={message.isHidden ? "Mostrar mensaje" : "Ocultar mensaje"}>
-                                        <IconButton 
-                                            onClick={() => toggleMessageVisibility(message._id)}
-                                            size="small"
-                                            disabled={submitting}
-                                        >
-                                            {message.isHidden ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                                        </IconButton>
-                                    </Tooltip>
-                                </Box>
-                                <Typography 
-                                    variant="body1" 
-                                    sx={{ opacity: message.isHidden ? 0.6 : 1 }}
-                                >
-                                    {message.content}
-                                </Typography>
-                                {message.rating && (
-                                    <Box display="flex" alignItems="center" gap={1} mt={1}>
-                                        <StarIcon sx={{ color: 'gold' }} />
-                                        <Typography>
-                                            {message.rating.overall}
-                                        </Typography>
-                                    </Box>
-                                )}
-                            </Paper>
-                        ))}
-                    </Stack>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setOpenMessagesDialog(false)}>
-                        Cerrar
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <MessageDialog 
+                open={openMessagesDialog}
+                onClose={() => setOpenMessagesDialog(false)}
+                messages={messages}
+                submitting={submitting}
+                toggleMessageVisibility={toggleMessageVisibility}
+            />
 
             {/* Modal de Imágenes */}
             <Dialog 
