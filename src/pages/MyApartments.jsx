@@ -56,7 +56,6 @@ const LoadingButton = ({ loading, children, ...props }) => (
 // Componente Dialog para mensajes
 const MessageDialog = ({ open, onClose, messages, submitting, toggleMessageVisibility }) => {
     const [filter, setFilter] = useState('visible');
-
     const visibleMessages = messages.filter(msg => !msg.isHidden);
     const hiddenMessages = messages.filter(msg => msg.isHidden);
 
@@ -123,15 +122,11 @@ const MessageDialog = ({ open, onClose, messages, submitting, toggleMessageVisib
                                     </IconButton>
                                 </Tooltip>
                             </Box>
-                            <Typography variant="body1">
-                                {message.content}
-                            </Typography>
+                            <Typography variant="body1">{message.content}</Typography>
                             {message.rating && (
                                 <Box display="flex" alignItems="center" gap={1} mt={1}>
                                     <StarIcon sx={{ color: 'gold' }} />
-                                    <Typography>
-                                        {message.rating.overall} / 5
-                                    </Typography>
+                                    <Typography>{message.rating.overall} / 5</Typography>
                                 </Box>
                             )}
                         </Paper>
@@ -144,15 +139,13 @@ const MessageDialog = ({ open, onClose, messages, submitting, toggleMessageVisib
                 </Stack>
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>
-                    Cerrar
-                </Button>
+                <Button onClick={onClose}>Cerrar</Button>
             </DialogActions>
         </Dialog>
     );
 };
-// Componente principal MyApartments
-const MyApartments = () => {
+
+const MyFlats = () => {
     const [apartments, setApartments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -195,7 +188,6 @@ const MyApartments = () => {
                 return;
             }
     
-            // Obtener perfil del usuario
             const userResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/users/profile`, {
                 headers: getAuthHeaders()
             });
@@ -206,7 +198,6 @@ const MyApartments = () => {
     
             const userId = userResponse.data.data._id;
     
-            // Obtener flats del usuario
             const flatsResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/flats`, {
                 headers: getAuthHeaders(),
                 params: {
@@ -304,7 +295,6 @@ const MyApartments = () => {
         const files = Array.from(event.target.files);
         setUploadFiles(prev => [...prev, ...files]);
 
-        // Crear previsualizaciones
         const newPreviews = files.map(file => ({
             _id: URL.createObjectURL(file),
             url: URL.createObjectURL(file),
@@ -316,14 +306,77 @@ const MyApartments = () => {
         setSelectedImages(prev => [...prev, ...newPreviews]);
     };
 
-    const handleSetMainImage = (imageId) => {
-        setMainImageId(imageId);
-        setSelectedImages(prev => 
-            prev.map(img => ({
-                ...img,
-                isMainImage: img._id === imageId
-            }))
-        );
+    const handleSetMainImage = async (imageId) => {
+        try {
+            setSubmitting(true);
+            const formData = new FormData();
+            formData.append('mainImageId', imageId);
+    
+            console.log('Iniciando cambio de imagen principal:', {
+                newMainImageId: imageId,
+                currentMainImageId: mainImageId,
+                currentImages: selectedImages.map(img => ({
+                    id: img._id,
+                    isMain: img.isMainImage
+                }))
+            });
+    
+            const response = await axios.put(
+                `${import.meta.env.VITE_APP_API_URL}/flats/${selectedFlat}/images`,
+                formData,
+                {
+                    headers: getAuthHeaders(true)
+                }
+            );
+    
+            if (response.data.success) {
+                console.log('Respuesta del servidor:', response.data);
+    
+                // Actualizar el mainImageId local
+                setMainImageId(imageId);
+                
+                // Actualizar las imágenes seleccionadas asegurando que solo una sea principal
+                const updatedSelectedImages = selectedImages.map(img => ({
+                    ...img,
+                    isMainImage: (img._id === imageId || img.id === imageId)
+                }));
+                setSelectedImages(updatedSelectedImages);
+    
+                // Actualizar el estado global de apartamentos
+                setApartments(prev => prev.map(apt => {
+                    if (apt._id === selectedFlat) {
+                        // Asegurarse de que las imágenes del servidor se actualicen correctamente
+                        const updatedImages = response.data.data.images.map(img => ({
+                            ...img,
+                            _id: img.id || img._id,
+                            isMainImage: (img.id === imageId || img._id === imageId)
+                        }));
+    
+                        return {
+                            ...apt,
+                            images: updatedImages
+                        };
+                    }
+                    return apt;
+                }));
+    
+                setError(null);
+    
+                // Log de verificación del estado final
+                console.log('Estado final de imágenes:', {
+                    newMainId: imageId,
+                    updatedImages: updatedSelectedImages.map(img => ({
+                        id: img._id,
+                        isMain: img.isMainImage
+                    }))
+                });
+            }
+        } catch (error) {
+            console.error('Error al establecer imagen principal:', error);
+            setError(error.response?.data?.message || 'Error al establecer la imagen principal');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handleDeleteImage = async (imageId) => {
@@ -337,6 +390,13 @@ const MyApartments = () => {
             const formData = new FormData();
             formData.append('deleteImages', JSON.stringify([imageId]));
 
+            if (imageId === mainImageId) {
+                const nextImage = selectedImages.find(img => img._id !== imageId);
+                if (nextImage) {
+                    formData.append('mainImageId', nextImage._id);
+                }
+            }
+
             const response = await axios.put(
                 `${import.meta.env.VITE_APP_API_URL}/flats/${selectedFlat}/images`,
                 formData,
@@ -349,7 +409,7 @@ const MyApartments = () => {
                 setSelectedImages(prev => {
                     const newImages = prev.filter(img => img._id !== imageId);
                     if (imageId === mainImageId && newImages.length > 0) {
-                        const newMainId = newImages[0]._id;
+                        const newMainId = response.data.data.images.find(img => img.isMainImage)._id;
                         setMainImageId(newMainId);
                         return newImages.map(img => ({
                             ...img,
@@ -378,7 +438,6 @@ const MyApartments = () => {
             setSubmitting(false);
         }
     };
-
     const handleSaveImages = async () => {
         setSubmitting(true);
         try {
@@ -517,7 +576,17 @@ const MyApartments = () => {
             {/* Modal de Imágenes */}
             <Dialog 
                 open={openImagesDialog} 
-                onClose={() => !submitting && setOpenImagesDialog(false)}
+                onClose={() => {
+                    if (!submitting) {
+                        selectedImages.forEach(img => {
+                            if (img.isPreview) {
+                                URL.revokeObjectURL(img.url);
+                            }
+                        });
+                        setOpenImagesDialog(false);
+                        setUploadFiles([]);
+                    }
+                }}
                 maxWidth="md"
                 fullWidth
             >
@@ -548,15 +617,22 @@ const MyApartments = () => {
                             </Typography>
                         )}
                     </Box>
+
+                    {error && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            {error}
+                        </Alert>
+                    )}
+
                     <ImageList cols={3} gap={8}>
                         {selectedImages.map((image) => (
-                            <ImageListItem key={image._id} sx={{ position: 'relative' }}>
+                            <ImageListItem key={image._id || image.id} sx={{ position: 'relative' }}>
                                 <img
                                     src={image.url}
                                     alt={image.description || 'Imagen del departamento'}
                                     loading="lazy"
                                     style={{
-                                        border: image._id === mainImageId ? '3px solid #17A5AA' : 'none',
+                                        border: (image._id === mainImageId || image.id === mainImageId) ? '3px solid #17A5AA' : 'none',
                                         height: '200px',
                                         width: '100%',
                                         objectFit: 'cover'
@@ -577,10 +653,10 @@ const MyApartments = () => {
                                     <Tooltip title="Establecer como principal">
                                         <IconButton
                                             size="small"
-                                            onClick={() => handleSetMainImage(image._id)}
-                                            disabled={submitting}
+                                            onClick={() => handleSetMainImage(image._id || image.id)}
+                                            disabled={submitting || image.isPreview}
                                         >
-                                            {image._id === mainImageId ? (
+                                            {(image._id === mainImageId || image.id === mainImageId) ? (
                                                 <StarIcon sx={{ color: '#17A5AA' }} />
                                             ) : (
                                                 <StarBorderIcon />
@@ -590,14 +666,14 @@ const MyApartments = () => {
                                     <Tooltip title="Eliminar imagen">
                                         <IconButton
                                             size="small"
-                                            onClick={() => handleDeleteImage(image._id)}
+                                            onClick={() => handleDeleteImage(image._id || image.id)}
                                             disabled={submitting}
                                         >
                                             <DeleteIcon sx={{ color: 'error.main' }} />
                                         </IconButton>
                                     </Tooltip>
                                 </Box>
-                                {image._id === mainImageId && (
+                                {(image._id === mainImageId || image.id === mainImageId) && (
                                     <Box
                                         sx={{
                                             position: 'absolute',
@@ -618,7 +694,7 @@ const MyApartments = () => {
                     </ImageList>
                 </DialogContent>
                 <DialogActions>
-                <Button 
+                    <Button 
                         onClick={() => {
                             selectedImages.forEach(img => {
                                 if (img.isPreview) {
@@ -626,6 +702,7 @@ const MyApartments = () => {
                                 }
                             });
                             setOpenImagesDialog(false);
+                            setUploadFiles([]);
                         }}
                         disabled={submitting}
                     >
@@ -651,4 +728,5 @@ const MyApartments = () => {
     );
 };
 
-export default MyApartments;
+export default MyFlats;
+            
