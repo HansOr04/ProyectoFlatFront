@@ -215,7 +215,7 @@ const DetailsFlatPage = () => {
         } : {};
   
         // Primero obtenemos los datos del flat
-        const flatResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/flats/${id}`);
+        const flatResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/flats/${id}`, config);
   
         if (flatResponse?.data?.success) {
           setFlat(flatResponse.data.data);
