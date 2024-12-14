@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Container, Box, Button, TextField, Typography, Alert } from "@mui/material";
+import { Container, Box, Button, TextField, Typography, Alert, Snackbar } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -8,11 +8,16 @@ const LoginRegisterPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
 
   const toggleForm = () => {
     setError("");
     setIsLogin(!isLogin);
+  };
+
+  const handleCloseSuccess = () => {
+    setSuccessMessage("");
   };
 
   return (
@@ -77,8 +82,8 @@ const LoginRegisterPage = () => {
             color: "primary.main",
           }}>
             {showForgotPassword 
-              ? "Reset Password"
-              : (isLogin ? "Welcome Back" : "Create Account")}
+              ? "Restablecer Contraseña"
+              : (isLogin ? "Bienvenido de nuevo" : "Crear cuenta")}
           </Typography>
 
           {error && (
@@ -99,18 +104,21 @@ const LoginRegisterPage = () => {
               {showForgotPassword ? (
                 <ForgotPassword 
                   setError={setError} 
-                  onClose={() => setShowForgotPassword(false)} 
+                  onClose={() => setShowForgotPassword(false)}
+                  setSuccessMessage={setSuccessMessage}
                 />
               ) : isLogin ? (
                 <Login 
                   setError={setError} 
                   navigate={navigate} 
                   setShowForgotPassword={setShowForgotPassword}
+                  setSuccessMessage={setSuccessMessage}
                 />
               ) : (
                 <Register 
                   setError={setError} 
-                  navigate={navigate} 
+                  navigate={navigate}
+                  setSuccessMessage={setSuccessMessage}
                 />
               )}
             </motion.div>
@@ -119,23 +127,33 @@ const LoginRegisterPage = () => {
           {!showForgotPassword && (
             <Box sx={{ mt: 2, textAlign: "center" }}>
               <Typography variant="body2" sx={{ mb: 1 }}>
-                {isLogin ? "Don't have an account?" : "Already have an account?"}
+                {isLogin ? "¿No tienes una cuenta?" : "¿Ya tienes una cuenta?"}
               </Typography>
               <Button onClick={toggleForm} sx={{
                 textTransform: "none",
                 fontWeight: "bold",
               }}>
-                {isLogin ? "Sign up" : "Sign in"}
+                {isLogin ? "Registrarse" : "Iniciar sesión"}
               </Button>
             </Box>
           )}
+
+          <Snackbar
+            open={!!successMessage}
+            autoHideDuration={3000}
+            onClose={handleCloseSuccess}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          >
+            <Alert onClose={handleCloseSuccess} severity="success" sx={{ width: '100%' }}>
+              {successMessage}
+            </Alert>
+          </Snackbar>
         </Box>
       </Box>
     </Container>
   );
 };
-
-const Login = ({ setError, navigate, setShowForgotPassword }) => {
+const Login = ({ setError, navigate, setShowForgotPassword, setSuccessMessage }) => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -147,10 +165,10 @@ const Login = ({ setError, navigate, setShowForgotPassword }) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     
     if (!emailRegex.test(formData.email)) {
-      newErrors.email = "Invalid email address";
+      newErrors.email = "Correo electrónico inválido";
     }
     if (!formData.password) {
-      newErrors.password = "Password is required";
+      newErrors.password = "La contraseña es requerida";
     }
 
     setErrors(newErrors);
@@ -171,17 +189,20 @@ const Login = ({ setError, navigate, setShowForgotPassword }) => {
     }
     
     try {
-      const response = await axios.post('http://localhost:8080/auth/login', formData);
+      const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/auth/login`, formData);
       
       if (response.data.success) {
         const { token, user } = response.data.data;
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
-        navigate('/');
-        window.location.reload();
+        setSuccessMessage("Inicio de sesión exitoso");
+        setTimeout(() => {
+          navigate('/');
+          window.location.reload();
+        }, 1500);
       }
     } catch (error) {
-      setError(error.response?.data?.message || "Error during login");
+      setError(error.response?.data?.message || "Error durante el inicio de sesión");
     }
   };
 
@@ -192,7 +213,7 @@ const Login = ({ setError, navigate, setShowForgotPassword }) => {
         required
         fullWidth
         id="email"
-        label="Email Address"
+        label="Correo electrónico"
         name="email"
         autoComplete="email"
         autoFocus
@@ -207,7 +228,7 @@ const Login = ({ setError, navigate, setShowForgotPassword }) => {
         required
         fullWidth
         name="password"
-        label="Password"
+        label="Contraseña"
         type="password"
         id="password"
         autoComplete="current-password"
@@ -230,7 +251,7 @@ const Login = ({ setError, navigate, setShowForgotPassword }) => {
           bgcolor: "#4E9DE0",
         }}
       >
-        Sign in
+        Iniciar sesión
       </Button>
       
       <Button
@@ -241,34 +262,32 @@ const Login = ({ setError, navigate, setShowForgotPassword }) => {
           color: "text.secondary"
         }}
       >
-        Forgot your password?
+        ¿Olvidaste tu contraseña?
       </Button>
     </Box>
   );
 };
 
-const ForgotPassword = ({ setError, onClose }) => {
+const ForgotPassword = ({ setError, onClose, setSuccessMessage }) => {
   const [email, setEmail] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    setSuccessMessage("");
 
     try {
-      const response = await axios.post('http://localhost:8080/auth/forgot-password', { email });
+      const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/auth/forgot-password`, { email });
       
       if (response.data.success) {
-        setSuccessMessage("Password reset link has been sent to your email");
+        setSuccessMessage("El enlace de restablecimiento ha sido enviado a tu correo");
         setTimeout(() => {
           onClose();
         }, 3000);
       }
     } catch (error) {
-      setError(error.response?.data?.message || "Error sending reset link");
+      setError(error.response?.data?.message || "Error al enviar el enlace de restablecimiento");
     } finally {
       setLoading(false);
     }
@@ -277,7 +296,7 @@ const ForgotPassword = ({ setError, onClose }) => {
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%" }}>
       <Typography variant="body2" sx={{ mb: 3, color: 'text.secondary' }}>
-        Enter your email address and we'll send you a link to reset your password.
+        Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
       </Typography>
 
       <TextField
@@ -285,7 +304,7 @@ const ForgotPassword = ({ setError, onClose }) => {
         required
         fullWidth
         id="email"
-        label="Email Address"
+        label="Correo electrónico"
         name="email"
         autoComplete="email"
         autoFocus
@@ -294,12 +313,6 @@ const ForgotPassword = ({ setError, onClose }) => {
         disabled={loading}
         sx={{ mb: 2 }}
       />
-
-      {successMessage && (
-        <Alert severity="success" sx={{ mb: 2 }}>
-          {successMessage}
-        </Alert>
-      )}
 
       <Button
         type="submit"
@@ -314,7 +327,7 @@ const ForgotPassword = ({ setError, onClose }) => {
           bgcolor: "#4E9DE0",
         }}
       >
-        {loading ? "Sending..." : "Send Reset Link"}
+        {loading ? "Enviando..." : "Enviar enlace"}
       </Button>
       
       <Button
@@ -325,13 +338,12 @@ const ForgotPassword = ({ setError, onClose }) => {
           textTransform: "none",
         }}
       >
-        Back to Login
+        Volver al inicio de sesión
       </Button>
     </Box>
   );
 };
-
-const Register = ({ setError, navigate }) => {
+const Register = ({ setError, navigate, setSuccessMessage }) => {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -352,39 +364,39 @@ const Register = ({ setError, navigate }) => {
     const age = new Date().getFullYear() - new Date(formData.birthDate).getFullYear();
 
     if (!formData.firstName.trim()) {
-      newErrors.firstName = "First name is required";
+      newErrors.firstName = "El nombre es requerido";
     } else if (formData.firstName.length < 2) {
-      newErrors.firstName = "First name must be at least 2 characters";
+      newErrors.firstName = "El nombre debe tener al menos 2 caracteres";
     }
 
     if (!formData.lastName.trim()) {
-      newErrors.lastName = "Last name is required";
+      newErrors.lastName = "El apellido es requerido";
     } else if (formData.lastName.length < 2) {
-      newErrors.lastName = "Last name must be at least 2 characters";
+      newErrors.lastName = "El apellido debe tener al menos 2 caracteres";
     }
 
     if (!formData.email) {
-      newErrors.email = "Email is required";
+      newErrors.email = "El correo electrónico es requerido";
     } else if (!emailRegex.test(formData.email)) {
-      newErrors.email = "Invalid email address";
+      newErrors.email = "Correo electrónico inválido";
     }
 
     if (!formData.birthDate) {
-      newErrors.birthDate = "Birth date is required";
+      newErrors.birthDate = "La fecha de nacimiento es requerida";
     } else if (age < 18 || age > 120) {
-      newErrors.birthDate = "Age must be between 18 and 120 years";
+      newErrors.birthDate = "La edad debe estar entre 18 y 120 años";
     }
 
     if (!formData.password) {
-      newErrors.password = "Password is required";
+      newErrors.password = "La contraseña es requerida";
     } else if (!passwordRegex.test(formData.password)) {
-      newErrors.password = "Password must be at least 6 characters with at least one uppercase letter, one lowercase letter, one number and one special character";
+      newErrors.password = "La contraseña debe tener al menos 6 caracteres, una mayúscula, una minúscula, un número y un carácter especial";
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = "Please confirm your password";
+      newErrors.confirmPassword = "Por favor confirma tu contraseña";
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match";
+      newErrors.confirmPassword = "Las contraseñas no coinciden";
     }
 
     setErrors(newErrors);
@@ -402,12 +414,12 @@ const Register = ({ setError, navigate }) => {
     const file = e.target.files[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        setError("Please upload an image file");
+        setError("Por favor sube un archivo de imagen");
         return;
       }
       
       if (file.size > 5 * 1024 * 1024) {
-        setError("Image size should be less than 5MB");
+        setError("El tamaño de la imagen debe ser menor a 5MB");
         return;
       }
 
@@ -442,7 +454,7 @@ const Register = ({ setError, navigate }) => {
         formDataToSend.append('profileImage', formData.profileImage);
       }
 
-      const response = await axios.post('http://localhost:8080/auth/register', formDataToSend, {
+      const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/auth/register`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -452,11 +464,14 @@ const Register = ({ setError, navigate }) => {
         const { token, user } = response.data.data;
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(user));
-        navigate('/');
-        window.location.reload();
+        setSuccessMessage("Registro exitoso");
+        setTimeout(() => {
+          navigate('/');
+          window.location.reload();
+        }, 1500);
       }
     } catch (error) {
-      setError(error.response?.data?.message || "Error during registration");
+      setError(error.response?.data?.message || "Error durante el registro");
     }
   };
 
@@ -490,7 +505,7 @@ const Register = ({ setError, navigate }) => {
           variant="outlined"
           sx={{ mb: 2 }}
         >
-          {imagePreview ? 'Change Profile Picture' : 'Upload Profile Picture'}
+          {imagePreview ? 'Cambiar foto de perfil' : 'Subir foto de perfil'}
           <input
             type="file"
             hidden
@@ -510,7 +525,7 @@ const Register = ({ setError, navigate }) => {
           required
           fullWidth
           id="firstName"
-          label="First Name"
+          label="Nombre"
           name="firstName"
           autoComplete="given-name"
           value={formData.firstName}
@@ -523,7 +538,7 @@ const Register = ({ setError, navigate }) => {
           required
           fullWidth
           id="lastName"
-          label="Last Name"
+          label="Apellido"
           name="lastName"
           autoComplete="family-name"
           value={formData.lastName}
@@ -537,7 +552,7 @@ const Register = ({ setError, navigate }) => {
         required
         fullWidth
         id="email"
-        label="Email Address"
+        label="Correo electrónico"
         name="email"
         autoComplete="email"
         value={formData.email}
@@ -551,7 +566,7 @@ const Register = ({ setError, navigate }) => {
         required
         fullWidth
         name="password"
-        label="Password"
+        label="Contraseña"
         type="password"
         id="password"
         autoComplete="new-password"
@@ -566,7 +581,7 @@ const Register = ({ setError, navigate }) => {
         required
         fullWidth
         name="confirmPassword"
-        label="Confirm Password"
+        label="Confirmar contraseña"
         type="password"
         id="confirmPassword"
         autoComplete="new-password"
@@ -581,7 +596,7 @@ const Register = ({ setError, navigate }) => {
         required
         fullWidth
         name="birthDate"
-        label="Birth Date"
+        label="Fecha de nacimiento"
         type="date"
         id="birthDate"
         value={formData.birthDate}
@@ -607,7 +622,7 @@ const Register = ({ setError, navigate }) => {
           bgcolor: "#4E9DE0",
         }}
       >
-        Create Account
+        Crear cuenta
       </Button>
     </Box>
   );

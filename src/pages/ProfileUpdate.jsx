@@ -291,7 +291,7 @@ const ProfileUpdate = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:8080/users/${targetUserId}`,
+        `${import.meta.env.VITE_APP_API_URL}/users/${targetUserId}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -355,7 +355,7 @@ const ProfileUpdate = () => {
       updateData[apiField] = value;
 
       const response = await axios.put(
-        `http://localhost:8080/users/${targetUserId}`,
+        `${import.meta.env.VITE_APP_API_URL}/users/${targetUserId}`,
         updateData,
         {
           headers: {
@@ -409,7 +409,7 @@ const ProfileUpdate = () => {
       console.log('Enviando imagen...', file); // Debug
   
       const response = await axios.put(
-        `http://localhost:8080/users/${targetUserId}`,
+        `${import.meta.env.VITE_APP_API_URL}/users/${targetUserId}`,
         formData,
         {
           headers: {
@@ -450,7 +450,7 @@ const ProfileUpdate = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.delete(
-        `http://localhost:8080/users/${targetUserId}`,
+        `${import.meta.env.VITE_APP_API_URL}/users/${targetUserId}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -493,7 +493,7 @@ const ProfileUpdate = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        'http://localhost:8080/auth/change-password',
+        '${import.meta.env.VITE_APP_API_URL}/auth/change-password',
         {
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword

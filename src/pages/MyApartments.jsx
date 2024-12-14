@@ -151,7 +151,6 @@ const MessageDialog = ({ open, onClose, messages, submitting, toggleMessageVisib
         </Dialog>
     );
 };
-
 // Componente principal MyApartments
 const MyApartments = () => {
     const [apartments, setApartments] = useState([]);
@@ -170,6 +169,18 @@ const MyApartments = () => {
     const [uploadFiles, setUploadFiles] = useState([]);
     const [mainImageId, setMainImageId] = useState(null);
 
+    // Efecto para limpiar las URLs de previsualización
+    useEffect(() => {
+        return () => {
+            selectedImages.forEach(img => {
+                if (img.isPreview) {
+                    URL.revokeObjectURL(img.url);
+                }
+            });
+        };
+    }, [selectedImages]);
+
+    // Cargar apartamentos al montar el componente
     useEffect(() => {
         fetchMyApartments();
     }, []);
@@ -184,8 +195,8 @@ const MyApartments = () => {
                 return;
             }
     
-            // Primero obtenemos el perfil del usuario para conseguir su ID
-            const userResponse = await axios.get('http://localhost:8080/users/profile', {
+            // Obtener perfil del usuario
+            const userResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/users/profile`, {
                 headers: getAuthHeaders()
             });
     
@@ -195,17 +206,16 @@ const MyApartments = () => {
     
             const userId = userResponse.data.data._id;
     
-            // Luego obtenemos los flats filtrando por el owner
-            const flatsResponse = await axios.get('http://localhost:8080/flats', {
+            // Obtener flats del usuario
+            const flatsResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/flats`, {
                 headers: getAuthHeaders(),
                 params: {
                     owner: 'true',
-                    userId: userId  // Añadimos el ID del usuario como parámetro
+                    userId: userId
                 }
             });
     
             if (flatsResponse.data.success) {
-                // Filtramos los flats que pertenecen al usuario
                 const userFlats = flatsResponse.data.data.filter(flat => flat.owner._id === userId);
                 setApartments(userFlats);
             } else {
@@ -232,7 +242,7 @@ const MyApartments = () => {
     const confirmDelete = async () => {
         setSubmitting(true);
         try {
-            await axios.delete(`http://localhost:8080/flats/${selectedFlat}`, {
+            await axios.delete(`${import.meta.env.VITE_APP_API_URL}/flats/${selectedFlat}`, {
                 headers: getAuthHeaders()
             });
             setApartments(apartments.filter(apt => apt._id !== selectedFlat));
@@ -249,7 +259,7 @@ const MyApartments = () => {
     const handleManageMessages = async (flatId) => {
         setSelectedFlat(flatId);
         try {
-            const response = await axios.get(`http://localhost:8080/messages/flat/${flatId}`, {
+            const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/messages/flat/${flatId}`, {
                 headers: getAuthHeaders()
             });
             setMessages(response.data.data);
@@ -265,7 +275,7 @@ const MyApartments = () => {
         setSubmitting(true);
         try {
             await axios.patch(
-                `http://localhost:8080/messages/${messageId}/visibility`,
+                `${import.meta.env.VITE_APP_API_URL}/messages/${messageId}/visibility`,
                 {},
                 { headers: getAuthHeaders() }
             );
@@ -280,17 +290,30 @@ const MyApartments = () => {
             setSubmitting(false);
         }
     };
+
     const handleManageImages = async (flatId) => {
         const flat = apartments.find(apt => apt._id === flatId);
         setSelectedFlat(flatId);
         setSelectedImages(flat.images || []);
         setMainImageId(flat.images.find(img => img.isMainImage)?._id || null);
+        setUploadFiles([]);
         setOpenImagesDialog(true);
     };
 
     const handleImageUpload = (event) => {
         const files = Array.from(event.target.files);
         setUploadFiles(prev => [...prev, ...files]);
+
+        // Crear previsualizaciones
+        const newPreviews = files.map(file => ({
+            _id: URL.createObjectURL(file),
+            url: URL.createObjectURL(file),
+            file: file,
+            isMainImage: false,
+            isPreview: true
+        }));
+
+        setSelectedImages(prev => [...prev, ...newPreviews]);
     };
 
     const handleSetMainImage = (imageId) => {
@@ -310,28 +333,49 @@ const MyApartments = () => {
         }
 
         try {
+            setSubmitting(true);
             const formData = new FormData();
             formData.append('deleteImages', JSON.stringify([imageId]));
 
-            await axios.put(
-                `http://localhost:8080/flats/${selectedFlat}/images`,
+            const response = await axios.put(
+                `${import.meta.env.VITE_APP_API_URL}/flats/${selectedFlat}/images`,
                 formData,
                 {
                     headers: getAuthHeaders(true)
                 }
             );
 
-            setSelectedImages(prev => {
-                const newImages = prev.filter(img => img._id !== imageId);
-                if (imageId === mainImageId && newImages.length > 0) {
-                    handleSetMainImage(newImages[0]._id);
-                }
-                return newImages;
-            });
-            setError(null);
+            if (response.data.success) {
+                setSelectedImages(prev => {
+                    const newImages = prev.filter(img => img._id !== imageId);
+                    if (imageId === mainImageId && newImages.length > 0) {
+                        const newMainId = newImages[0]._id;
+                        setMainImageId(newMainId);
+                        return newImages.map(img => ({
+                            ...img,
+                            isMainImage: img._id === newMainId
+                        }));
+                    }
+                    return newImages;
+                });
+
+                setApartments(prev => prev.map(apt => {
+                    if (apt._id === selectedFlat) {
+                        return {
+                            ...apt,
+                            images: response.data.data.images
+                        };
+                    }
+                    return apt;
+                }));
+
+                setError(null);
+            }
         } catch (error) {
             console.error('Error deleting image:', error);
             setError(error.response?.data?.message || 'Error al eliminar la imagen');
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -348,18 +392,35 @@ const MyApartments = () => {
                 formData.append('mainImageId', mainImageId);
             }
 
-            await axios.put(
-                `http://localhost:8080/flats/${selectedFlat}/images`,
+            const response = await axios.put(
+                `${import.meta.env.VITE_APP_API_URL}/flats/${selectedFlat}/images`,
                 formData,
                 {
                     headers: getAuthHeaders(true)
                 }
             );
 
-            await fetchMyApartments();
-            setOpenImagesDialog(false);
-            setUploadFiles([]);
-            setError(null);
+            if (response.data.success) {
+                setApartments(prev => prev.map(apt => {
+                    if (apt._id === selectedFlat) {
+                        return {
+                            ...apt,
+                            images: response.data.data.images
+                        };
+                    }
+                    return apt;
+                }));
+
+                selectedImages.forEach(img => {
+                    if (img.isPreview) {
+                        URL.revokeObjectURL(img.url);
+                    }
+                });
+
+                setOpenImagesDialog(false);
+                setUploadFiles([]);
+                setError(null);
+            }
         } catch (error) {
             console.error('Error saving images:', error);
             setError(error.response?.data?.message || 'Error al guardar las imágenes');
@@ -496,6 +557,9 @@ const MyApartments = () => {
                                     loading="lazy"
                                     style={{
                                         border: image._id === mainImageId ? '3px solid #17A5AA' : 'none',
+                                        height: '200px',
+                                        width: '100%',
+                                        objectFit: 'cover'
                                     }}
                                 />
                                 <Box
@@ -554,8 +618,15 @@ const MyApartments = () => {
                     </ImageList>
                 </DialogContent>
                 <DialogActions>
-                    <Button 
-                        onClick={() => setOpenImagesDialog(false)}
+                <Button 
+                        onClick={() => {
+                            selectedImages.forEach(img => {
+                                if (img.isPreview) {
+                                    URL.revokeObjectURL(img.url);
+                                }
+                            });
+                            setOpenImagesDialog(false);
+                        }}
                         disabled={submitting}
                     >
                         Cancelar
@@ -565,6 +636,12 @@ const MyApartments = () => {
                         loading={submitting}
                         variant="contained"
                         color="primary"
+                        sx={{
+                            bgcolor: 'rgb(23, 165, 170)',
+                            '&:hover': {
+                                bgcolor: 'rgb(18, 140, 145)'
+                            }
+                        }}
                     >
                         Guardar Cambios
                     </LoadingButton>

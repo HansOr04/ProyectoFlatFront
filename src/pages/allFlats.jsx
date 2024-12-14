@@ -64,7 +64,7 @@ const AllFlats = () => {
     const fetchFlats = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("http://localhost:8080/flats", {
+        const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/flats`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -107,7 +107,7 @@ const AllFlats = () => {
 
       try {
         const response = await axios.get(
-          "http://localhost:8080/users/favorites",
+          `${import.meta.env.VITE_APP_API_URL}/users/favorites`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -205,7 +205,7 @@ const AllFlats = () => {
 
     try {
       const response = await axios.post(
-        `http://localhost:8080/flats/${id}/favorite`,
+        `${import.meta.env.VITE_APP_API_URL}/flats/${id}/favorite`,
         {},
         {
           headers: {

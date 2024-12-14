@@ -339,7 +339,7 @@ const [formData, setFormData] = useState(initialFormData);
             );
         });
 
-        const response = await fetch('http://localhost:8080/flats', {
+        const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/flats`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`

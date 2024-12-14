@@ -208,7 +208,7 @@ const UpdateFlat = () => {
     const fetchFlatData = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:8080/flats/${id}`, {
+        const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/flats/${id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -511,7 +511,7 @@ const UpdateFlat = () => {
       }
 
       // Enviar la actualización
-      const response = await fetch(`http://localhost:8080/flats/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/flats/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
