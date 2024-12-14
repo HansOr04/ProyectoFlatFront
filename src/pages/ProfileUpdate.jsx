@@ -493,7 +493,7 @@ const ProfileUpdate = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        '${import.meta.env.VITE_APP_API_URL}/auth/change-password',
+        `${import.meta.env.VITE_APP_API_URL}/auth/change-password`,
         {
           currentPassword: passwordData.currentPassword,
           newPassword: passwordData.newPassword
