@@ -196,7 +196,7 @@ const MyApartments = () => {
             }
     
             // Obtener perfil del usuario
-            const userResponse = await axios.get('http://localhost:8080/users/profile', {
+            const userResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/users/profile`, {
                 headers: getAuthHeaders()
             });
     
@@ -207,7 +207,7 @@ const MyApartments = () => {
             const userId = userResponse.data.data._id;
     
             // Obtener flats del usuario
-            const flatsResponse = await axios.get('http://localhost:8080/flats', {
+            const flatsResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/flats`, {
                 headers: getAuthHeaders(),
                 params: {
                     owner: 'true',
@@ -242,7 +242,7 @@ const MyApartments = () => {
     const confirmDelete = async () => {
         setSubmitting(true);
         try {
-            await axios.delete(`http://localhost:8080/flats/${selectedFlat}`, {
+            await axios.delete(`${import.meta.env.VITE_APP_API_URL}/flats/${selectedFlat}`, {
                 headers: getAuthHeaders()
             });
             setApartments(apartments.filter(apt => apt._id !== selectedFlat));
@@ -259,7 +259,7 @@ const MyApartments = () => {
     const handleManageMessages = async (flatId) => {
         setSelectedFlat(flatId);
         try {
-            const response = await axios.get(`http://localhost:8080/messages/flat/${flatId}`, {
+            const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/messages/flat/${flatId}`, {
                 headers: getAuthHeaders()
             });
             setMessages(response.data.data);
@@ -275,7 +275,7 @@ const MyApartments = () => {
         setSubmitting(true);
         try {
             await axios.patch(
-                `http://localhost:8080/messages/${messageId}/visibility`,
+                `${import.meta.env.VITE_APP_API_URL}/messages/${messageId}/visibility`,
                 {},
                 { headers: getAuthHeaders() }
             );
@@ -338,7 +338,7 @@ const MyApartments = () => {
             formData.append('deleteImages', JSON.stringify([imageId]));
 
             const response = await axios.put(
-                `http://localhost:8080/flats/${selectedFlat}/images`,
+                `${import.meta.env.VITE_APP_API_URL}/flats/${selectedFlat}/images`,
                 formData,
                 {
                     headers: getAuthHeaders(true)
@@ -393,7 +393,7 @@ const MyApartments = () => {
             }
 
             const response = await axios.put(
-                `http://localhost:8080/flats/${selectedFlat}/images`,
+                `${import.meta.env.VITE_APP_API_URL}/flats/${selectedFlat}/images`,
                 formData,
                 {
                     headers: getAuthHeaders(true)

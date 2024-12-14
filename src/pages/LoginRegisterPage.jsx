@@ -189,7 +189,7 @@ const Login = ({ setError, navigate, setShowForgotPassword, setSuccessMessage })
     }
     
     try {
-      const response = await axios.post('http://localhost:8080/auth/login', formData);
+      const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/auth/login`, formData);
       
       if (response.data.success) {
         const { token, user } = response.data.data;
@@ -278,7 +278,7 @@ const ForgotPassword = ({ setError, onClose, setSuccessMessage }) => {
     setError("");
 
     try {
-      const response = await axios.post('http://localhost:8080/auth/forgot-password', { email });
+      const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/auth/forgot-password`, { email });
       
       if (response.data.success) {
         setSuccessMessage("El enlace de restablecimiento ha sido enviado a tu correo");
@@ -454,7 +454,7 @@ const Register = ({ setError, navigate, setSuccessMessage }) => {
         formDataToSend.append('profileImage', formData.profileImage);
       }
 
-      const response = await axios.post('http://localhost:8080/auth/register', formDataToSend, {
+      const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/auth/register`, formDataToSend, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

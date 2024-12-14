@@ -141,7 +141,7 @@ const AdminPanel = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get("http://localhost:8080/users", {
+      const response = await axios.get(`${import.meta.env.VITE_APP_API_URL}/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -206,7 +206,7 @@ const AdminPanel = () => {
   const handleDeleteUser = async (userId) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:8080/users/${userId}`, {
+      await axios.delete(`${import.meta.env.VITE_APP_API_URL}/users/${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -231,7 +231,7 @@ const AdminPanel = () => {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.put(
-        `http://localhost:8080/users/${id}`,
+        `${import.meta.env.VITE_APP_API_URL}/users/${id}`,
         { isAdmin: !currentStatus },
         {
           headers: { Authorization: `Bearer ${token}` },

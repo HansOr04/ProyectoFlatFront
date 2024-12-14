@@ -215,7 +215,7 @@ const DetailsFlatPage = () => {
         } : {};
   
         // Primero obtenemos los datos del flat
-        const flatResponse = await axios.get(`http://localhost:8080/flats/${id}`);
+        const flatResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/flats/${id}`);
   
         if (flatResponse?.data?.success) {
           setFlat(flatResponse.data.data);
@@ -227,7 +227,7 @@ const DetailsFlatPage = () => {
           if (typeof flatResponse.data.data.owner === 'string') {
             // Obtener información del propietario con el token en los headers
             const ownerResponse = await axios.get(
-              `http://localhost:8080/users/${flatResponse.data.data.owner}`,
+              `${import.meta.env.VITE_APP_API_URL}/users/${flatResponse.data.data.owner}`,
               config
             );
             if (ownerResponse.data.success) {
@@ -240,7 +240,7 @@ const DetailsFlatPage = () => {
   
         // Obtener reseñas
         const reviewsResponse = await axios.get(
-          `http://localhost:8080/messages/flat/${id}`,
+          `${import.meta.env.VITE_APP_API_URL}/messages/flat/${id}`,
           config
         );
         if (reviewsResponse?.data?.success) {
@@ -250,7 +250,7 @@ const DetailsFlatPage = () => {
         // Si hay token, obtener perfil del usuario actual
         if (token) {
           const userResponse = await axios.get(
-            'http://localhost:8080/users/profile',
+            `${import.meta.env.VITE_APP_API_URL}/users/profile`,
             config
           );
           if (userResponse?.data?.success) {
@@ -300,7 +300,7 @@ const DetailsFlatPage = () => {
       }
 
       const response = await axios.post(
-        `http://localhost:8080/flats/${id}/contact`,
+        `${import.meta.env.VITE_APP_API_URL}/flats/${id}/contact`,
         contactForm,
         {
           headers: { 
@@ -346,7 +346,7 @@ const DetailsFlatPage = () => {
       }
 
       const response = await axios.post(
-        `http://localhost:8080/messages/flat/${id}`,
+        `${import.meta.env.VITE_APP_API_URL}/messages/flat/${id}`,
         {
           content: newReview.content,
           flatID: id,
@@ -403,7 +403,7 @@ const DetailsFlatPage = () => {
       }
 
       const response = await axios.post(
-        `http://localhost:8080/flats/${id}/favorite`,
+        `${import.meta.env.VITE_APP_API_URL}/${id}/favorite`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` }
@@ -436,7 +436,7 @@ const DetailsFlatPage = () => {
       }
 
       const response = await axios.post(
-        `http://localhost:8080/messages/${messageId}/reply`,
+        `${import.meta.env.VITE_APP_API_URL}/messages/${messageId}/reply`,
         { content },
         {
           headers: { 
