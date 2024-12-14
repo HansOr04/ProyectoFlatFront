@@ -209,35 +209,45 @@ const DetailsFlatPage = () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
+        console.log('Token encontrado:', !!token); // Log si hay token
+        console.log('ID del flat:', id); // Log del ID
+        console.log('URL de la API:', import.meta.env.VITE_APP_API_URL); // Log de la URL base
         
         const config = token ? {
           headers: { Authorization: `Bearer ${token}` }
         } : {};
   
+        // Log de la URL completa antes de la petición
+        console.log('Haciendo petición a:', `${import.meta.env.VITE_APP_API_URL}/flats/${id}`);
+    
         // Primero obtenemos los datos del flat
         const flatResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/flats/${id}`, config);
-  
+        console.log('Respuesta del flat:', flatResponse.data); // Log de la respuesta
+    
         if (flatResponse?.data?.success) {
           setFlat(flatResponse.data.data);
           if (flatResponse.data.data.images?.length > 0) {
             setMainImageUrl(flatResponse.data.data.images[0].url);
+            console.log('Imagen principal establecida:', flatResponse.data.data.images[0].url);
           }
-  
+    
           // Solo si tenemos el ID del propietario y es un string válido
           if (typeof flatResponse.data.data.owner === 'string') {
-            // Obtener información del propietario con el token en los headers
+            console.log('ID del propietario:', flatResponse.data.data.owner);
+            
             const ownerResponse = await axios.get(
               `${import.meta.env.VITE_APP_API_URL}/users/${flatResponse.data.data.owner}`,
               config
             );
             if (ownerResponse.data.success) {
               setFlatOwner(ownerResponse.data.data);
+              console.log('Datos del propietario cargados');
             }
           }
         } else {
           throw new Error("No se pudo cargar la información del inmueble");
         }
-  
+    
         // Obtener reseñas
         const reviewsResponse = await axios.get(
           `${import.meta.env.VITE_APP_API_URL}/messages/flat/${id}`,
@@ -245,8 +255,9 @@ const DetailsFlatPage = () => {
         );
         if (reviewsResponse?.data?.success) {
           setReviews(reviewsResponse.data.data);
+          console.log('Reseñas cargadas:', reviewsResponse.data.data.length);
         }
-  
+    
         // Si hay token, obtener perfil del usuario actual
         if (token) {
           const userResponse = await axios.get(
@@ -257,20 +268,27 @@ const DetailsFlatPage = () => {
             setCurrentUser(userResponse.data.data);
             const userFavorites = userResponse.data.data.favoriteFlats || [];
             setIsFavorite(userFavorites.includes(id));
+            console.log('Perfil de usuario cargado');
           }
         }
-  
+    
       } catch (err) {
         const errorMessage = err.response?.data?.message || 
                            err.message || 
                            "Error al cargar los datos";
         setError(errorMessage);
-        console.error("Error detallado:", err);
+        console.error("Error detallado:", {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+          url: err.config?.url,
+          headers: err.config?.headers
+        });
       } finally {
         setLoading(false);
       }
     };
-  
+    
     fetchData();
   }, [id]);
 
