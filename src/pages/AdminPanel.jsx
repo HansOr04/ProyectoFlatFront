@@ -20,6 +20,11 @@ import {
   CardContent,
   CardActions,
   useMediaQuery,
+  Slider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
@@ -96,18 +101,42 @@ const StyledButton = styled(Button)`
   }
 `;
 
+const FilterContainer = styled(Paper)`
+  padding: 20px;
+  margin-bottom: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+`;
+
 const AdminPanel = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [ageRange, setAgeRange] = useState([0, 100]);
+  const [flatsRange, setFlatsRange] = useState([0, 20]);
+  const [roleFilter, setRoleFilter] = useState('all');
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
   const isSmallScreen = useMediaQuery("(max-width: 1024px)");
+
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return null;
+    const today = new Date();
+    const birth = new Date(birthDate);
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   const fetchUsers = async () => {
     try {
@@ -116,25 +145,35 @@ const AdminPanel = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const formattedUsers = response.data.data.map((user) => ({
-        ...user,
-        id: user._id,
-        flatsCount: user.flatsOwned?.length || 0,
-        createdAt: new Date(user.atCreated).toLocaleDateString("es-ES", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
-        birthDate: user.birthDate
-          ? new Date(user.birthDate).toLocaleDateString("es-ES", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })
-          : "No especificado",
-      }));
+      const formattedUsers = response.data.data.map((user) => {
+        // Calcula la edad aquí
+        const birthDate = user.birthDate ? new Date(user.birthDate) : null;
+        let age = null;
+        
+        if (birthDate) {
+          const today = new Date();
+          age = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            age--;
+          }
+        }
+
+        return {
+          ...user,
+          id: user._id,
+          flatsCount: user.flatsOwned?.length || 0,
+          age: age,
+          createdAt: new Date(user.atCreated).toLocaleDateString("es-ES", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          }),
+        };
+      });
 
       setUsers(formattedUsers);
+      setFilteredUsers(formattedUsers);
     } catch (error) {
       console.error("Error al cargar usuarios:", error);
       setSnackbar({
@@ -150,6 +189,19 @@ const AdminPanel = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    const filtered = users.filter(user => {
+      const ageMatch = user.age >= ageRange[0] && user.age <= ageRange[1];
+      const flatsMatch = user.flatsCount >= flatsRange[0] && user.flatsCount <= flatsRange[1];
+      const roleMatch = roleFilter === 'all' || 
+        (roleFilter === 'admin' && user.isAdmin) || 
+        (roleFilter === 'user' && !user.isAdmin);
+      
+      return ageMatch && flatsMatch && roleMatch;
+    });
+    setFilteredUsers(filtered);
+  }, [ageRange, flatsRange, roleFilter, users]);
 
   const handleDeleteUser = async (userId) => {
     try {
@@ -240,9 +292,14 @@ const AdminPanel = () => {
       width: 130,
     },
     {
-      field: "birthDate",
-      headerName: "Fecha de Nacimiento",
-      width: 200,
+      field: "age",
+      headerName: "Edad",
+      width: 100,
+      renderCell: (params) => (
+        <Typography variant="body2">
+          {params.value ? `${params.value} años` : "No especificada"}
+        </Typography>
+      )
     },
     {
       field: "flatsCount",
@@ -306,6 +363,58 @@ const AdminPanel = () => {
     },
   ];
 
+  const Filters = () => (
+    <FilterContainer>
+      <Box sx={{ display: 'flex', flexDirection: isSmallScreen ? 'column' : 'row', gap: 4 }}>
+        <Box sx={{ flex: 1 }}>
+          <Typography gutterBottom>Rango de Edad</Typography>
+          <Slider
+            value={ageRange}
+            onChange={(_, newValue) => setAgeRange(newValue)}
+            valueLabelDisplay="auto"
+            min={0}
+            max={100}
+            sx={{ color: 'rgb(23, 165, 170)' }}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="caption">{ageRange[0]} años</Typography>
+            <Typography variant="caption">{ageRange[1]} años</Typography>
+          </Box>
+        </Box>
+
+        <Box sx={{ flex: 1 }}>
+          <Typography gutterBottom>Número de Propiedades</Typography>
+          <Slider
+            value={flatsRange}
+            onChange={(_, newValue) => setFlatsRange(newValue)}
+            valueLabelDisplay="auto"
+            min={0}
+            max={20}
+            sx={{ color: 'rgb(23, 165, 170)' }}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="caption">{flatsRange[0]} propiedades</Typography>
+            <Typography variant="caption">{flatsRange[1]} propiedades</Typography>
+          </Box>
+        </Box>
+
+        <FormControl sx={{ minWidth: 120 }}>
+          <InputLabel>Rol</InputLabel>
+          <Select
+            value={roleFilter}
+            label="Rol"
+            onChange={(e) => setRoleFilter(e.target.value)}
+            sx={{ color: 'rgb(23, 165, 170)' }}
+          >
+            <MenuItem value="all">Todos</MenuItem>
+            <MenuItem value="admin">Administradores</MenuItem>
+            <MenuItem value="user">Usuarios</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
+    </FilterContainer>
+  );
+
   return (
     <StyledContainer>
       <StyledHeader>
@@ -314,18 +423,14 @@ const AdminPanel = () => {
         </Typography>
       </StyledHeader>
 
+      <Filters />
+
       {isSmallScreen ? (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          {users.map((user) => (
+          {filteredUsers.map((user) => (
             <Card key={user.id} sx={{ marginBottom: 2 }}>
               <CardContent>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    marginBottom: 2,
-                  }}
-                >
+                <Box sx={{ display: "flex", alignItems: "center", marginBottom: 2 }}>
                   <Avatar
                     src={user.profileImage}
                     sx={{ bgcolor: "rgb(23, 165, 170)", marginRight: 2 }}
@@ -338,7 +443,7 @@ const AdminPanel = () => {
                 </Box>
                 <Typography variant="body2">Email: {user.email}</Typography>
                 <Typography variant="body2">
-                  Fecha de Nacimiento: {user.birthDate}
+                  Edad: {user.age ? `${user.age} años` : "No especificada"}
                 </Typography>
                 <Typography variant="body2">
                   Propiedades: {user.flatsCount}
@@ -391,7 +496,7 @@ const AdminPanel = () => {
       ) : (
         <StyledGridContainer>
           <DataGrid
-            rows={users}
+            rows={filteredUsers}
             columns={columns}
             loading={loading}
             components={{
