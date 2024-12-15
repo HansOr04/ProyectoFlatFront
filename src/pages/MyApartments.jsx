@@ -265,18 +265,35 @@ const MyFlats = () => {
     const toggleMessageVisibility = async (messageId) => {
         setSubmitting(true);
         try {
-            await axios.patch(
+            // Asegúrate de que la URL base esté correctamente configurada
+            const response = await axios.patch(
                 `${import.meta.env.VITE_APP_API_URL}/messages/${messageId}/visibility`,
                 {},
-                { headers: getAuthHeaders() }
+                { 
+                    headers: { 
+                        Authorization: `Bearer ${localStorage.getItem('token')}`,
+                        'Content-Type': 'application/json'
+                    }
+                }
             );
-            setMessages(messages.map(msg => 
-                msg._id === messageId ? { ...msg, isHidden: !msg.isHidden } : msg
-            ));
-            setError(null);
-        } catch (error) {
-            console.error('Error toggling message visibility:', error);
-            setError('Error al actualizar la visibilidad del mensaje');
+    
+            // Verifica que la respuesta sea exitosa antes de actualizar el estado
+            if (response.data.success) {
+                // Actualiza los mensajes localmente
+                setMessages(prevMessages => prevMessages.map(msg => 
+                    msg._id === messageId 
+                        ? { ...msg, isHidden: !msg.isHidden } 
+                        : msg
+                ));
+    
+                // Opcional: Muestra un mensaje de éxito
+                setError(null);
+            } else {
+                throw new Error(response.data.message || 'Error al actualizar la visibilidad');
+            }
+        } catch (err) {
+            console.error('Error al cambiar la visibilidad del mensaje:', err);
+            setError(err.response?.data?.message || 'Error al actualizar la visibilidad del mensaje');
         } finally {
             setSubmitting(false);
         }

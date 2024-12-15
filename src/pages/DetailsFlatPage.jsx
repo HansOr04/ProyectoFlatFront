@@ -1,29 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  Box, 
-  Typography, 
-  Grid, 
-  Tabs, 
-  Tab, 
-  Paper, 
-  Rating, 
-  Chip, 
-  IconButton,
-  TextField, 
-  Button, 
-  Avatar, 
-  Dialog, 
-  DialogTitle, 
-  DialogContent,
-  DialogActions,
-  CircularProgress,
-  Alert,
-  Snackbar,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
+  Box, Typography, Grid, Tabs, Tab, Paper, Rating, Chip, IconButton,
+  TextField, Button, Avatar, Dialog, DialogTitle, DialogContent,
+  DialogActions, CircularProgress, Alert, Snackbar, List, ListItem,
+  ListItemIcon, ListItemText
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import {
@@ -51,19 +32,26 @@ import {
   Check as CheckIcon,
   Clear as ClearIcon,
   Reply as ReplyIcon,
-  ExpandMore as ExpandMoreIcon
+  ExpandMore as ExpandMoreIcon,
+  Close as CloseIcon,
+  NavigateNext,
+  NavigateBefore,
+  ZoomIn as ZoomInIcon,
+  Star as StarIcon
 } from "@mui/icons-material";
 import axios from "axios";
 
 const PRIMARY_COLOR = 'rgb(23, 165, 170)';
 const PRIMARY_HOVER = 'rgb(18, 140, 145)';
 
+// Styled Components mejorados
 const MainImage = styled("img")({
   width: "100%",
   height: "400px",
   objectFit: "cover",
   borderRadius: "12px",
   transition: "transform 0.3s ease",
+  cursor: "pointer",
   "&:hover": {
     transform: "scale(1.02)",
   },
@@ -80,6 +68,41 @@ const ThumbnailImage = styled("img")({
     transform: "scale(1.05)",
   },
 });
+
+const ImageViewerDialog = styled(Dialog)({
+  '& .MuiDialog-paper': {
+    margin: 0,
+    maxWidth: '100%',
+    maxHeight: '100%',
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+  },
+});
+
+const ImageViewerContent = styled(DialogContent)({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  position: 'relative',
+  padding: 0,
+  height: '100%',
+});
+
+const FullScreenImage = styled('img')({
+  maxWidth: '100%',
+  maxHeight: '100vh',
+  objectFit: 'contain',
+});
+
+const NavigationButton = styled(IconButton)(({ theme }) => ({
+  position: 'absolute',
+  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  color: 'white',
+  '&:hover': {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+}));
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -103,16 +126,6 @@ const FeatureItem = styled(Box)({
   gap: "8px",
   marginBottom: "16px",
 });
-
-const ReviewContainer = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(3),
-  marginBottom: theme.spacing(2),
-  borderRadius: "12px",
-  transition: 'box-shadow 0.3s ease',
-  '&:hover': {
-    boxShadow: "0 6px 16px rgba(0,0,0,0.1)",
-  },
-}));
 
 const AmenityChip = styled(Chip)({
   margin: "4px",
@@ -140,12 +153,14 @@ const StyledTabs = styled(Tabs)({
 
 const StyledButton = styled(Button)({
   backgroundColor: PRIMARY_COLOR,
+  color: 'white',
   '&:hover': {
     backgroundColor: PRIMARY_HOVER,
   },
   '&.MuiButton-outlined': {
     color: PRIMARY_COLOR,
     borderColor: PRIMARY_COLOR,
+    backgroundColor: 'transparent',
     '&:hover': {
       borderColor: PRIMARY_HOVER,
       backgroundColor: `${PRIMARY_COLOR}10`,
@@ -162,12 +177,28 @@ const StyledRating = styled(Rating)({
   },
 });
 
+const ImageCounter = styled(Box)({
+  position: 'absolute',
+  bottom: 16,
+  left: '50%',
+  transform: 'translateX(-50%)',
+  backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  color: 'white',
+  padding: '4px 12px',
+  borderRadius: 16,
+  fontSize: '0.875rem',
+});
 const DetailsFlatPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  const [selectedTab, setSelectedTab] = useState(0);
+  // Estados para el visor de imágenes
+  const [imageViewerOpen, setImageViewerOpen] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [mainImageUrl, setMainImageUrl] = useState("");
+  
+  // Estados principales
+  const [selectedTab, setSelectedTab] = useState(0);
   const [flat, setFlat] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -178,6 +209,11 @@ const DetailsFlatPage = () => {
   const [flatOwner, setFlatOwner] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   
+  // Estados para manejo de respuestas
+  const [replyForms, setReplyForms] = useState({});
+  const [replyContents, setReplyContents] = useState({});
+
+  // Estado para formulario de contacto
   const [contactForm, setContactForm] = useState({
     name: '',
     cedula: '',
@@ -185,6 +221,7 @@ const DetailsFlatPage = () => {
     message: ''
   });
 
+  // Estado para reseñas nuevas
   const [newReview, setNewReview] = useState({
     content: "",
     rating: {
@@ -199,55 +236,52 @@ const DetailsFlatPage = () => {
     }
   });
   
+  // Estado para notificaciones
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'success'
   });
+
+  // Efecto para cargar datos iniciales
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const token = localStorage.getItem('token');
-        console.log('Token encontrado:', !!token); // Log si hay token
-        console.log('ID del flat:', id); // Log del ID
-        console.log('URL de la API:', import.meta.env.VITE_APP_API_URL); // Log de la URL base
         
         const config = token ? {
           headers: { Authorization: `Bearer ${token}` }
         } : {};
-  
-        // Log de la URL completa antes de la petición
-        console.log('Haciendo petición a:', `${import.meta.env.VITE_APP_API_URL}/flats/${id}`);
-    
-        // Primero obtenemos los datos del flat
-        const flatResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/flats/${id}`, config);
-        console.log('Respuesta del flat:', flatResponse.data); // Log de la respuesta
-    
+
+        // Obtener datos del flat
+        const flatResponse = await axios.get(
+          `${import.meta.env.VITE_APP_API_URL}/flats/${id}`, 
+          config
+        );
+
         if (flatResponse?.data?.success) {
           setFlat(flatResponse.data.data);
           if (flatResponse.data.data.images?.length > 0) {
             setMainImageUrl(flatResponse.data.data.images[0].url);
-            console.log('Imagen principal establecida:', flatResponse.data.data.images[0].url);
           }
-    
-          // Solo si tenemos el ID del propietario y es un string válido
+
+          // Obtener datos del propietario
           if (typeof flatResponse.data.data.owner === 'string') {
-            console.log('ID del propietario:', flatResponse.data.data.owner);
-            
             const ownerResponse = await axios.get(
               `${import.meta.env.VITE_APP_API_URL}/users/${flatResponse.data.data.owner}`,
               config
             );
             if (ownerResponse.data.success) {
               setFlatOwner(ownerResponse.data.data);
-              console.log('Datos del propietario cargados');
             }
+          } else {
+            setFlatOwner(flatResponse.data.data.owner);
           }
         } else {
           throw new Error("No se pudo cargar la información del inmueble");
         }
-    
+
         // Obtener reseñas
         const reviewsResponse = await axios.get(
           `${import.meta.env.VITE_APP_API_URL}/messages/flat/${id}`,
@@ -255,10 +289,9 @@ const DetailsFlatPage = () => {
         );
         if (reviewsResponse?.data?.success) {
           setReviews(reviewsResponse.data.data);
-          console.log('Reseñas cargadas:', reviewsResponse.data.data.length);
         }
-    
-        // Si hay token, obtener perfil del usuario actual
+
+        // Obtener datos del usuario actual
         if (token) {
           const userResponse = await axios.get(
             `${import.meta.env.VITE_APP_API_URL}/users/profile`,
@@ -268,22 +301,15 @@ const DetailsFlatPage = () => {
             setCurrentUser(userResponse.data.data);
             const userFavorites = userResponse.data.data.favoriteFlats || [];
             setIsFavorite(userFavorites.includes(id));
-            console.log('Perfil de usuario cargado');
           }
         }
-    
+
       } catch (err) {
+        console.error('Error al cargar datos:', err);
         const errorMessage = err.response?.data?.message || 
                            err.message || 
                            "Error al cargar los datos";
         setError(errorMessage);
-        console.error("Error detallado:", {
-          message: err.message,
-          response: err.response?.data,
-          status: err.response?.status,
-          url: err.config?.url,
-          headers: err.config?.headers
-        });
       } finally {
         setLoading(false);
       }
@@ -292,6 +318,7 @@ const DetailsFlatPage = () => {
     fetchData();
   }, [id]);
 
+  // Funciones auxiliares
   const formatPrice = (price) => {
     return price.toLocaleString('es-ES', {
       style: 'currency',
@@ -308,44 +335,23 @@ const DetailsFlatPage = () => {
       day: 'numeric'
     });
   };
-
-  const handleContactSubmit = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
-
-      const response = await axios.post(
-        `${import.meta.env.VITE_APP_API_URL}/flats/${id}/contact`,
-        contactForm,
-        {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (response.data.success) {
-        setSnackbar({
-          open: true,
-          message: 'Mensaje enviado correctamente',
-          severity: 'success'
-        });
-        setOpenContactDialog(false);
-        setContactForm({ name: '', cedula: '', email: '', message: '' });
-      }
-    } catch (error) {
-      setSnackbar({
-        open: true,
-        message: error.response?.data?.message || 'Error al enviar el mensaje',
-        severity: 'error'
-      });
-    }
+  // Funciones del visor de imágenes
+  const handleImageClick = (index) => {
+    setSelectedImageIndex(index);
+    setImageViewerOpen(true);
   };
 
+  const handleNextImage = () => {
+    setSelectedImageIndex((prev) => (prev + 1) % flat.images.length);
+  };
+
+  const handlePrevImage = () => {
+    setSelectedImageIndex((prev) => 
+      prev === 0 ? flat.images.length - 1 : prev - 1
+    );
+  };
+
+  // Funciones de manejo de reseñas y respuestas
   const handleSubmitReview = async () => {
     try {
       if (!newReview.content.trim()) {
@@ -404,6 +410,7 @@ const DetailsFlatPage = () => {
         });
       }
     } catch (err) {
+      console.error('Error al enviar reseña:', err);
       setSnackbar({
         open: true,
         message: err.response?.data?.message || 'Error al enviar la reseña',
@@ -412,41 +419,11 @@ const DetailsFlatPage = () => {
     }
   };
 
-  const handleToggleFavorite = async () => {
+  const handleReplySubmit = async (messageId) => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        navigate('/login');
-        return;
-      }
+      const content = replyContents[messageId];
+      if (!content?.trim()) return;
 
-      const response = await axios.post(
-        `${import.meta.env.VITE_APP_API_URL}/${id}/favorite`,
-        {},
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-
-      if (response.data.success) {
-        setIsFavorite(prev => !prev);
-        setSnackbar({
-          open: true,
-          message: !isFavorite ? 'Añadido a favoritos' : 'Eliminado de favoritos',
-          severity: 'success'
-        });
-      }
-    } catch (err) {
-      setSnackbar({
-        open: true,
-        message: err.response?.data?.message || 'Error al actualizar favoritos',
-        severity: 'error'
-      });
-    }
-  };
-
-  const handleReplySubmit = async (messageId, content) => {
-    try {
       const token = localStorage.getItem('token');
       if (!token) {
         navigate('/login');
@@ -465,6 +442,7 @@ const DetailsFlatPage = () => {
       );
 
       if (response.data.success) {
+        // Actualizar las reseñas con la nueva respuesta
         setReviews(prevReviews => 
           prevReviews.map(review => 
             review._id === messageId 
@@ -476,6 +454,10 @@ const DetailsFlatPage = () => {
           )
         );
         
+        // Limpiar el formulario
+        setReplyForms(prev => ({ ...prev, [messageId]: false }));
+        setReplyContents(prev => ({ ...prev, [messageId]: '' }));
+        
         setSnackbar({
           open: true,
           message: 'Respuesta enviada exitosamente',
@@ -483,6 +465,7 @@ const DetailsFlatPage = () => {
         });
       }
     } catch (err) {
+      console.error('Error al enviar respuesta:', err);
       setSnackbar({
         open: true,
         message: err.response?.data?.message || 'Error al enviar la respuesta',
@@ -491,6 +474,78 @@ const DetailsFlatPage = () => {
     }
   };
 
+  const handleContactSubmit = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_APP_API_URL}/flats/${id}/contact`,
+        contactForm,
+        {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data.success) {
+        setSnackbar({
+          open: true,
+          message: 'Mensaje enviado correctamente',
+          severity: 'success'
+        });
+        setOpenContactDialog(false);
+        setContactForm({ name: '', cedula: '', email: '', message: '' });
+      }
+    } catch (error) {
+      console.error('Error al enviar mensaje:', error);
+      setSnackbar({
+        open: true,
+        message: error.response?.data?.message || 'Error al enviar el mensaje',
+        severity: 'error'
+      });
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/login');
+        return;
+      }
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_APP_API_URL}/flats/${id}/favorite`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      if (response.data.success) {
+        setIsFavorite(prev => !prev);
+        setSnackbar({
+          open: true,
+          message: !isFavorite ? 'Añadido a favoritos' : 'Eliminado de favoritos',
+          severity: 'success'
+        });
+      }
+    } catch (err) {
+      console.error('Error al actualizar favoritos:', err);
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || 'Error al actualizar favoritos',
+        severity: 'error'
+      });
+    }
+  };
+  // Renderizado condicional para estados de carga y error
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
@@ -509,6 +564,7 @@ const DetailsFlatPage = () => {
     );
   }
 
+  // Variables auxiliares para controlar la visualización
   const showMainImage = flat?.images?.length > 0 && mainImageUrl;
   const showThumbnails = flat?.images?.length > 0;
   const showAmenities = flat?.amenities && Object.keys(flat.amenities).some(key => flat.amenities[key]);
@@ -516,6 +572,7 @@ const DetailsFlatPage = () => {
   const showLocation = flat?.location;
   const showAvailability = flat?.availability;
 
+  // Inicio del JSX principal
   return (
     <Box sx={{ p: 4, maxWidth: 1200, margin: "0 auto" }}>
       {/* Header Navigation */}
@@ -530,6 +587,7 @@ const DetailsFlatPage = () => {
               backgroundColor: `${PRIMARY_COLOR}10`,
             }
           }}
+          aria-label="volver atrás"
         >
           <ArrowBackIcon sx={{ color: PRIMARY_COLOR }} />
         </IconButton>
@@ -542,6 +600,7 @@ const DetailsFlatPage = () => {
               backgroundColor: isFavorite ? '#ffebee' : `${PRIMARY_COLOR}10`,
             }
           }}
+          aria-label={isFavorite ? "quitar de favoritos" : "añadir a favoritos"}
         >
           <FavoriteIcon color={isFavorite ? "error" : "default"} />
         </IconButton>
@@ -553,10 +612,34 @@ const DetailsFlatPage = () => {
           <Grid container spacing={2}>
             <Grid item xs={12}>
               {showMainImage ? (
-                <MainImage
-                  src={mainImageUrl}
-                  alt={flat.title}
-                />
+                <Box position="relative">
+                  <MainImage
+                    src={mainImageUrl}
+                    alt={flat.title}
+                    onClick={() => handleImageClick(flat.images.findIndex(img => img.url === mainImageUrl))}
+                  />
+                  <Box sx={{
+                    position: 'absolute',
+                    bottom: 16,
+                    right: 16,
+                    display: 'flex',
+                    gap: 1
+                  }}>
+                    <IconButton
+                      sx={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                        '&:hover': { backgroundColor: 'white' }
+                      }}
+                      onClick={() => handleImageClick(flat.images.findIndex(img => img.url === mainImageUrl))}
+                      aria-label="ampliar imagen"
+                    >
+                      <ZoomInIcon />
+                    </IconButton>
+                  </Box>
+                  <ImageCounter>
+                    {flat.images.findIndex(img => img.url === mainImageUrl) + 1} / {flat.images.length}
+                  </ImageCounter>
+                </Box>
               ) : (
                 <Box sx={{ 
                   height: 400, 
@@ -570,22 +653,136 @@ const DetailsFlatPage = () => {
                 </Box>
               )}
             </Grid>
+
             {showThumbnails && (
               <Grid item xs={12}>
                 <Grid container spacing={2}>
                   {flat.images.map((img, index) => (
                     <Grid item xs={6} md={3} key={img._id || index}>
-                      <ThumbnailImage
-                        src={img.url}
-                        alt={`Vista ${index + 1}`}
-                        onClick={() => setMainImageUrl(img.url)}
-                      />
+                      <Box
+                        sx={{
+                          position: 'relative',
+                          '&:hover .image-overlay': {
+                            opacity: 1
+                          }
+                        }}
+                      >
+                        <ThumbnailImage
+                          src={img.url}
+                          alt={`Vista ${index + 1}`}
+                          onClick={() => {
+                            setMainImageUrl(img.url);
+                            handleImageClick(index);
+                          }}
+                        />
+                        <Box
+                          className="image-overlay"
+                          sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: 'rgba(0,0,0,0.4)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            opacity: 0,
+                            transition: 'opacity 0.2s',
+                            borderRadius: '8px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <ZoomInIcon sx={{ color: 'white', fontSize: 32 }} />
+                        </Box>
+                      </Box>
                     </Grid>
                   ))}
                 </Grid>
               </Grid>
             )}
           </Grid>
+
+          {/* Image Viewer Dialog */}
+          <ImageViewerDialog
+            open={imageViewerOpen}
+            onClose={() => setImageViewerOpen(false)}
+            maxWidth={false}
+            aria-labelledby="image-viewer-title"
+          >
+            <DialogTitle 
+              id="image-viewer-title"
+              sx={{ 
+                position: 'absolute', 
+                right: 0, 
+                top: 0, 
+                zIndex: 1,
+                color: 'white'
+              }}
+            >
+              <IconButton 
+                onClick={() => setImageViewerOpen(false)}
+                sx={{ color: 'white' }}
+                aria-label="cerrar visor"
+              >
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <ImageViewerContent>
+              <NavigationButton
+                onClick={handlePrevImage}
+                sx={{ left: 16 }}
+                aria-label="imagen anterior"
+              >
+                <NavigateBefore sx={{ fontSize: 40 }} />
+              </NavigationButton>
+
+              <FullScreenImage
+                src={flat.images[selectedImageIndex]?.url}
+                alt={`Vista ${selectedImageIndex + 1} de ${flat.title}`}
+              />
+
+              <NavigationButton
+                onClick={handleNextImage}
+                sx={{ right: 16 }}
+                aria-label="siguiente imagen"
+              >
+                <NavigateNext sx={{ fontSize: 40 }} />
+              </NavigationButton>
+
+              <Box sx={{
+                position: 'absolute',
+                bottom: 16,
+                left: 0,
+                right: 0,
+                display: 'flex',
+                justifyContent: 'center',
+                gap: 2
+              }}>
+                {flat.images.map((_, index) => (
+                  <Box
+                    key={index}
+                    onClick={() => setSelectedImageIndex(index)}
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      backgroundColor: index === selectedImageIndex ? 'white' : 'rgba(255,255,255,0.5)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      '&:hover': {
+                        transform: 'scale(1.2)',
+                        backgroundColor: 'white'
+                      }
+                    }}
+                    role="button"
+                    aria-label={`Ver imagen ${index + 1}`}
+                    tabIndex={0}
+                  />
+                ))}
+              </Box>
+            </ImageViewerContent>
+          </ImageViewerDialog>
         </Grid>
 
         {/* Main Content Section */}
@@ -596,7 +793,12 @@ const DetailsFlatPage = () => {
             </Typography>
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-              <StyledRating value={flat.ratings?.overall || 0} precision={0.5} readOnly />
+              <StyledRating 
+                value={flat.ratings?.overall || 0} 
+                precision={0.5} 
+                readOnly 
+                aria-label={`Calificación ${flat.ratings?.overall || 0} de 5`}
+              />
               <Typography variant="body2" color="text.secondary">
                 ({flat.ratings?.totalReviews || 0} reseñas)
               </Typography>
@@ -607,312 +809,291 @@ const DetailsFlatPage = () => {
               onChange={(e, newValue) => setSelectedTab(newValue)}
               variant="fullWidth"
               sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}
+              aria-label="información del inmueble"
             >
-              <StyledTab label="Detalles" />
-              <StyledTab label="Ubicación" />
-              <StyledTab label="Comodidades" />
+              <StyledTab label="Detalles" id="flat-tab-0" aria-controls="flat-tabpanel-0" />
+              <StyledTab label="Ubicación" id="flat-tab-1" aria-controls="flat-tabpanel-1" />
+              <StyledTab label="Comodidades" id="flat-tab-2" aria-controls="flat-tabpanel-2" />
             </StyledTabs>
 
             {/* Tab de Detalles */}
-            {selectedTab === 0 && (
-              <Box>
-                <FeatureItem>
-                  <LocationOnIcon sx={{ color: PRIMARY_COLOR }} />
-                  <Typography>
-                    {`${flat.streetName} ${flat.streetNumber}, ${flat.location?.neighborhood || ''}, ${flat.city}`}
+            <div
+              role="tabpanel"
+              hidden={selectedTab !== 0}
+              id="flat-tabpanel-0"
+              aria-labelledby="flat-tab-0"
+            >
+              {selectedTab === 0 && (
+                <Box>
+                  <FeatureItem>
+                    <LocationOnIcon sx={{ color: PRIMARY_COLOR }} />
+                    <Typography>
+                      {`${flat.streetName} ${flat.streetNumber}, ${flat.location?.neighborhood || ''}, ${flat.city}`}
+                    </Typography>
+                  </FeatureItem>
+
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <FeatureItem>
+                        <BedIcon sx={{ color: PRIMARY_COLOR }} />
+                        <Typography>
+                          {flat.bedrooms} {flat.bedrooms === 1 ? 'Dormitorio' : 'Dormitorios'}
+                        </Typography>
+                      </FeatureItem>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <FeatureItem>
+                        <BathtubIcon sx={{ color: PRIMARY_COLOR }} />
+                        <Typography>
+                          {flat.bathrooms} {flat.bathrooms === 1 ? 'Baño' : 'Baños'}
+                        </Typography>
+                      </FeatureItem>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <FeatureItem>
+                        <SquareFootIcon sx={{ color: PRIMARY_COLOR }} />
+                        <Typography>{flat.areaSize} m²</Typography>
+                      </FeatureItem>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <FeatureItem>
+                        <PersonIcon sx={{ color: PRIMARY_COLOR }} />
+                        <Typography>Máximo {flat.maxGuests} huéspedes</Typography>
+                      </FeatureItem>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <FeatureItem>
+                        <CalendarTodayIcon sx={{ color: PRIMARY_COLOR }} />
+                        <Typography>Construido en {flat.yearBuilt}</Typography>
+                      </FeatureItem>
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                      <FeatureItem>
+                        <HomeIcon sx={{ color: PRIMARY_COLOR }} />
+                        <Typography>
+                          {flat.propertyType === 'apartment' && 'Apartamento'}
+                          {flat.propertyType === 'house' && 'Casa'}
+                          {flat.propertyType === 'studio' && 'Estudio'}
+                          {flat.propertyType === 'loft' && 'Loft'}
+                          {flat.propertyType === 'room' && 'Habitación'}
+                        </Typography>
+                      </FeatureItem>
+                    </Grid>
+                  </Grid>
+                  
+                  <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>Descripción</Typography>
+                  <Typography variant="body1" sx={{ mb: 3 }}>
+                    {flat.description}
                   </Typography>
-                </FeatureItem>
+                  {/* Sección de Reglas de la Casa */}
+                  {showHouseRules && (
+                    <>
+                      <Typography variant="h6" sx={{ mb: 2 }}>Reglas de la Casa</Typography>
+                      <Box sx={{ mb: 3 }}>
+                        <List>
+                          <ListItem>
+                            <ListItemIcon>
+                              {flat.houseRules?.smokingAllowed ? 
+                                <CheckIcon sx={{ color: PRIMARY_COLOR }} /> : 
+                                <ClearIcon color="error" />}
+                            </ListItemIcon>
+                            <ListItemText 
+                              primary="Fumar"
+                              secondary={flat.houseRules?.smokingAllowed ? "Permitido" : "No permitido"}
+                            />
+                          </ListItem>
+                          <ListItem>
+                            <ListItemIcon>
+                              {flat.houseRules?.eventsAllowed ? 
+                                <CheckIcon sx={{ color: PRIMARY_COLOR }} /> : 
+                                <ClearIcon color="error" />}
+                            </ListItemIcon>
+                            <ListItemText 
+                              primary="Eventos"
+                              secondary={flat.houseRules?.eventsAllowed ? "Permitido" : "No permitido"}
+                            />
+                          </ListItem>
+                          <ListItem>
+                            <ListItemIcon>
+                              <CalendarTodayIcon sx={{ color: PRIMARY_COLOR }} />
+                            </ListItemIcon>
+                            <ListItemText 
+                              primary="Horario de silencio"
+                              secondary={`${flat.houseRules?.quietHours?.start} - ${flat.houseRules?.quietHours?.end}`}
+                            />
+                          </ListItem>
 
-                <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
-                    <FeatureItem>
-                      <BedIcon sx={{ color: PRIMARY_COLOR }} />
-                      <Typography>
-                        {flat.bedrooms} {flat.bedrooms === 1 ? 'Dormitorio' : 'Dormitorios'}
-                      </Typography>
-                    </FeatureItem>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <FeatureItem>
-                      <BathtubIcon sx={{ color: PRIMARY_COLOR }} />
-                      <Typography>
-                        {flat.bathrooms} {flat.bathrooms === 1 ? 'Baño' : 'Baños'}
-                      </Typography>
-                    </FeatureItem>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <FeatureItem>
-                      <SquareFootIcon sx={{ color: PRIMARY_COLOR }} />
-                      <Typography>{flat.areaSize} m²</Typography>
-                    </FeatureItem>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <FeatureItem>
-                      <PersonIcon sx={{ color: PRIMARY_COLOR }} />
-                      <Typography>Máximo {flat.maxGuests} huéspedes</Typography>
-                    </FeatureItem>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <FeatureItem>
-                      <CalendarTodayIcon sx={{ color: PRIMARY_COLOR }} />
-                      <Typography>Construido en {flat.yearBuilt}</Typography>
-                    </FeatureItem>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <FeatureItem>
-                      <HomeIcon sx={{ color: PRIMARY_COLOR }} />
-                      <Typography>
-                        {flat.propertyType === 'apartment' && 'Apartamento'}
-                        {flat.propertyType === 'house' && 'Casa'}
-                        {flat.propertyType === 'studio' && 'Estudio'}
-                        {flat.propertyType === 'loft' && 'Loft'}
-                        {flat.propertyType === 'room' && 'Habitación'}
-                      </Typography>
-                    </FeatureItem>
-                  </Grid>
-                </Grid>
-                <Typography variant="h6" sx={{ mt: 3, mb: 2 }}>Descripción</Typography>
-                <Typography variant="body1" sx={{ mb: 3 }}>
-                  {flat.description}
-                </Typography>
-
-                {/* Sección de Reglas de la Casa */}
-                {showHouseRules && (
-                  <>
-                    <Typography variant="h6" sx={{ mb: 2 }}>Reglas de la Casa</Typography>
-                    <Box sx={{ mb: 3 }}>
-                      <List>
-                        <ListItem>
-                          <ListItemIcon>
-                            {flat.houseRules?.smokingAllowed ? 
-                              <CheckIcon sx={{ color: PRIMARY_COLOR }} /> : 
-                              <ClearIcon color="error" />}
-                          </ListItemIcon>
-                          <ListItemText 
-                            primary="Fumar"
-                            secondary={flat.houseRules?.smokingAllowed ? "Permitido" : "No permitido"}
-                          />
-                        </ListItem>
-                        <ListItem>
-                          <ListItemIcon>
-                            {flat.houseRules?.eventsAllowed ? 
-                              <CheckIcon sx={{ color: PRIMARY_COLOR }} /> : 
-                              <ClearIcon color="error" />}
-                          </ListItemIcon>
-                          <ListItemText 
-                            primary="Eventos"
-                            secondary={flat.houseRules?.eventsAllowed ? "Permitido" : "No permitido"}
-                          />
-                        </ListItem>
-                        <ListItem>
-                          <ListItemIcon>
-                            <CalendarTodayIcon sx={{ color: PRIMARY_COLOR }} />
-                          </ListItemIcon>
-                          <ListItemText 
-                            primary="Horario de silencio"
-                            secondary={`${flat.houseRules?.quietHours?.start} - ${flat.houseRules?.quietHours?.end}`}
-                          />
-                        </ListItem>
-                      </List>
-
-                      {flat.houseRules?.additionalRules?.length > 0 && (
-                        <Box sx={{ mt: 2 }}>
-                          <Typography variant="subtitle1" sx={{ mb: 1 }}>Reglas adicionales:</Typography>
-                          <List dense>
-                            {flat.houseRules.additionalRules.map((rule, index) => (
-                              <ListItem key={index}>
-                                <ListItemIcon>
-                                  <CheckIcon sx={{ color: PRIMARY_COLOR, fontSize: '1rem' }} />
-                                </ListItemIcon>
-                                <ListItemText 
-                                  primary={rule}
-                                  primaryTypographyProps={{ variant: 'body2' }}
-                                />
-                              </ListItem>
-                            ))}
-                          </List>
-                        </Box>
-                      )}
-                    </Box>
-                  </>
-                )}
-              </Box>
-            )}
+                          {flat.houseRules?.additionalRules?.map((rule, index) => (
+                            <ListItem key={index}>
+                              <ListItemIcon>
+                                <CheckIcon sx={{ color: PRIMARY_COLOR }} />
+                              </ListItemIcon>
+                              <ListItemText primary={rule} />
+                            </ListItem>
+                          ))}
+                        </List>
+                      </Box>
+                    </>
+                  )}
+                </Box>
+              )}
+            </div>
 
             {/* Tab de Ubicación */}
-            {selectedTab === 1 && showLocation && (
-              <Box>
-                <Typography variant="h6" gutterBottom>Detalles de la Ubicación</Typography>
-                <List>
-                  <ListItem>
-                    <ListItemIcon>
-                      <LocationOnIcon sx={{ color: PRIMARY_COLOR }} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary="Dirección Completa"
-                      secondary={`${flat.streetName} ${flat.streetNumber}, ${flat.location?.neighborhood}, ${flat.city}`}
-                    />
-                  </ListItem>
-                  
-                  {flat.location?.zipCode && (
-                    <ListItem>
-                      <ListItemIcon>
-                        <HomeIcon sx={{ color: PRIMARY_COLOR }} />
-                      </ListItemIcon>
-                      <ListItemText 
-                        primary="Código Postal"
-                        secondary={flat.location.zipCode}
-                      />
-                    </ListItem>
-                  )}
-
-                  {flat.location?.coordinates?.lat && flat.location?.coordinates?.lng && (
+            <div
+              role="tabpanel"
+              hidden={selectedTab !== 1}
+              id="flat-tabpanel-1"
+              aria-labelledby="flat-tab-1"
+            >
+              {selectedTab === 1 && showLocation && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>Detalles de la Ubicación</Typography>
+                  <List>
                     <ListItem>
                       <ListItemIcon>
                         <LocationOnIcon sx={{ color: PRIMARY_COLOR }} />
                       </ListItemIcon>
                       <ListItemText 
-                        primary="Coordenadas"
-                        secondary={`${flat.location.coordinates.lat}, ${flat.location.coordinates.lng}`}
+                        primary="Dirección Completa"
+                        secondary={`${flat.streetName} ${flat.streetNumber}, ${flat.location?.neighborhood}, ${flat.city}`}
                       />
                     </ListItem>
+                    
+                    {flat.location?.zipCode && (
+                      <ListItem>
+                        <ListItemIcon>
+                          <HomeIcon sx={{ color: PRIMARY_COLOR }} />
+                        </ListItemIcon>
+                        <ListItemText 
+                          primary="Código Postal"
+                          secondary={flat.location.zipCode}
+                        />
+                      </ListItem>
+                    )}
+
+                    {flat.location?.coordinates?.lat && flat.location?.coordinates?.lng && (
+                      <ListItem>
+                        <ListItemIcon>
+                          <LocationOnIcon sx={{ color: PRIMARY_COLOR }} />
+                        </ListItemIcon>
+                        <ListItemText 
+                          primary="Coordenadas"
+                          secondary={`${flat.location.coordinates.lat}, ${flat.location.coordinates.lng}`}
+                        />
+                      </ListItem>
+                    )}
+                  </List>
+
+                  {flat.location?.publicTransport?.length > 0 && (
+                    <Box sx={{ mt: 3 }}>
+                      <Typography variant="h6" gutterBottom>Transporte Público</Typography>
+                      <List dense>
+                        {flat.location.publicTransport.map((transport, index) => (
+                          <ListItem key={index}>
+                            <ListItemIcon>
+                              <CheckIcon sx={{ color: PRIMARY_COLOR }} fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText primary={transport} />
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Box>
                   )}
-                </List>
 
-                {flat.location?.publicTransport?.length > 0 && (
-                  <Box sx={{ mt: 3 }}>
-                    <Typography variant="h6" gutterBottom>Transporte Público</Typography>
-                    <List dense>
-                      {flat.location.publicTransport.map((transport, index) => (
-                        <ListItem key={index}>
-                          <ListItemIcon>
-                            <CheckIcon sx={{ color: PRIMARY_COLOR }} fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText primary={transport} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Box>
-                )}
-
-                {flat.location?.nearbyPlaces?.length > 0 && (
-                  <Box sx={{ mt: 3 }}>
-                    <Typography variant="h6" gutterBottom>Lugares Cercanos</Typography>
-                    <List dense>
-                      {flat.location.nearbyPlaces.map((place, index) => (
-                        <ListItem key={index}>
-                          <ListItemIcon>
-                            <LocationOnIcon sx={{ color: PRIMARY_COLOR }} fontSize="small" />
-                          </ListItemIcon>
-                          <ListItemText primary={place} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Box>
-                )}
-              </Box>
-            )}
+                  {flat.location?.nearbyPlaces?.length > 0 && (
+                    <Box sx={{ mt: 3 }}>
+                      <Typography variant="h6" gutterBottom>Lugares Cercanos</Typography>
+                      <List dense>
+                        {flat.location.nearbyPlaces.map((place, index) => (
+                          <ListItem key={index}>
+                            <ListItemIcon>
+                              <LocationOnIcon sx={{ color: PRIMARY_COLOR }} fontSize="small" />
+                            </ListItemIcon>
+                            <ListItemText primary={place} />
+                          </ListItem>
+                        ))}
+                      </List>
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </div>
 
             {/* Tab de Comodidades */}
-            {selectedTab === 2 && showAmenities && (
-              <Box>
-                <Typography variant="h6" gutterBottom>Comodidades Disponibles</Typography>
-                <Grid container spacing={2}>
-                  {flat.amenities?.wifi && (
-                    <Grid item xs={12} sm={6}>
-                      <AmenityChip icon={<WifiIcon />} label="WiFi" />
-                    </Grid>
-                  )}
-                  {flat.amenities?.tv && (
-                    <Grid item xs={12} sm={6}>
-                      <AmenityChip icon={<TvIcon />} label="TV" />
-                    </Grid>
-                  )}
-                  {flat.amenities?.kitchen && (
-                    <Grid item xs={12} sm={6}>
-                      <AmenityChip icon={<KitchenIcon />} label="Cocina" />
-                    </Grid>
-                  )}
-                  {flat.amenities?.washer && (
-                    <Grid item xs={12} sm={6}>
-                      <AmenityChip icon={<WasherIcon />} label="Lavadora" />
-                    </Grid>
-                  )}
-                  {flat.amenities?.airConditioning && (
-                    <Grid item xs={12} sm={6}>
-                      <AmenityChip icon={<AcUnitIcon />} label="Aire Acondicionado" />
-                    </Grid>
-                  )}
-                  {flat.amenities?.pool && (
-                    <Grid item xs={12} sm={6}>
-                      <AmenityChip icon={<PoolIcon />} label="Piscina" />
-                    </Grid>
-                  )}
-                  {flat.amenities?.gym && (
-                    <Grid item xs={12} sm={6}>
-                      <AmenityChip icon={<GymIcon />} label="Gimnasio" />
-                    </Grid>
-                  )}
-                  {flat.amenities?.elevator && (
-                    <Grid item xs={12} sm={6}>
-                      <AmenityChip icon={<ElevatorIcon />} label="Ascensor" />
-                    </Grid>
-                  )}
-                  {flat.amenities?.petsAllowed && (
-                    <Grid item xs={12} sm={6}>
-                      <AmenityChip icon={<PetsIcon />} label="Mascotas Permitidas" />
-                    </Grid>
-                  )}
-                  {flat.amenities?.smokeAlarm && (
-                    <Grid item xs={12} sm={6}>
-                      <AmenityChip icon={<SecurityIcon />} label="Alarma de Humo" />
-                    </Grid>
-                  )}
-                  {flat.amenities?.firstAidKit && (
-                    <Grid item xs={12} sm={6}>
-                      <AmenityChip icon={<SecurityIcon />} label="Botiquín" />
-                    </Grid>
-                  )}
-                  {flat.amenities?.fireExtinguisher && (
-                    <Grid item xs={12} sm={6}>
-                      <AmenityChip icon={<SecurityIcon />} label="Extintor" />
-                    </Grid>
-                  )}
-                  {flat.amenities?.securityCameras && (
-                    <Grid item xs={12} sm={6}>
-                      <AmenityChip icon={<SecurityIcon />} label="Cámaras de Seguridad" />
-                    </Grid>
-                  )}
-                </Grid>
-                {/* Sección de Estacionamiento */}
-                {flat.amenities?.parking?.available && (
-                  <Box sx={{ mt: 3 }}>
-                    <Typography variant="h6" gutterBottom>Estacionamiento</Typography>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
-                        <AmenityChip 
-                          icon={<ParkingIcon />} 
-                          label={`Estacionamiento (${
-                            flat.amenities.parking.type === 'free' ? 'Gratuito' :
-                            flat.amenities.parking.type === 'paid' ? 'De pago' :
-                            flat.amenities.parking.type === 'street' ? 'En la calle' :
-                            'No disponible'
-                          })`} 
-                        />
+            <div
+              role="tabpanel"
+              hidden={selectedTab !== 2}
+              id="flat-tabpanel-2"
+              aria-labelledby="flat-tab-2"
+            >
+              {selectedTab === 2 && showAmenities && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>Comodidades Disponibles</Typography>
+                  <Grid container spacing={2}>
+                    {Object.entries({
+                      wifi: 'WiFi',
+                      tv: 'TV',
+                      kitchen: 'Cocina',
+                      washer: 'Lavadora',
+                      airConditioning: 'Aire Acondicionado',
+                      pool: 'Piscina',
+                      gym: 'Gimnasio',
+                      elevator: 'Ascensor',
+                      petsAllowed: 'Mascotas Permitidas',
+                      securityCameras: 'Cámaras de Seguridad'
+                    }).map(([key, label]) => (
+                      flat.amenities?.[key] && (
+                        <Grid item xs={12} sm={6} key={key}>
+                          <AmenityChip 
+                            icon={
+                              key === 'wifi' ? <WifiIcon /> :
+                              key === 'tv' ? <TvIcon /> :
+                              key === 'kitchen' ? <KitchenIcon /> :
+                              key === 'washer' ? <WasherIcon /> :
+                              key === 'airConditioning' ? <AcUnitIcon /> :
+                              key === 'pool' ? <PoolIcon /> :
+                              key === 'gym' ? <GymIcon /> :
+                              key === 'elevator' ? <ElevatorIcon /> :
+                              key === 'petsAllowed' ? <PetsIcon /> :
+                              <SecurityIcon />
+                            } 
+                            label={label}
+                          />
+                        </Grid>
+                      )
+                    ))}
+                  </Grid>
+
+                  {/* Sección de Estacionamiento */}
+                  {flat.amenities?.parking?.available && (
+                    <Box sx={{ mt: 3 }}>
+                      <Typography variant="h6" gutterBottom>Estacionamiento</Typography>
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          <AmenityChip 
+                            icon={<ParkingIcon />} 
+                            label={`${
+                              flat.amenities.parking.type === 'free' ? 'Gratuito' :
+                              flat.amenities.parking.type === 'paid' ? 'De pago' :
+                              flat.amenities.parking.type === 'street' ? 'En la calle' :
+                              'No disponible'
+                            }`} 
+                          />
+                          {flat.amenities.parking.details && (
+                            <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
+                              {flat.amenities.parking.details}
+                            </Typography>
+                          )}
+                        </Grid>
                       </Grid>
-                    </Grid>
-                    {flat.amenities.parking.details && (
-                      <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
-                        {flat.amenities.parking.details}
-                      </Typography>
-                    )}
-                  </Box>
-                )}
-              </Box>
-            )}
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </div>
           </StyledPaper>
         </Grid>
-
         {/* Panel Lateral */}
         <Grid item xs={12} md={4}>
           <StyledPaper>
@@ -942,12 +1123,8 @@ const DetailsFlatPage = () => {
                 variant="contained"
                 fullWidth
                 onClick={() => setOpenContactDialog(true)}
-                sx={{
-                  backgroundColor: PRIMARY_COLOR,
-                  '&:hover': {
-                    backgroundColor: PRIMARY_HOVER,
-                  }
-                }}
+                startIcon={<LocationOnIcon />}
+                aria-label="contactar al dueño"
               >
                 Contactar al dueño
               </StyledButton>
@@ -984,55 +1161,19 @@ const DetailsFlatPage = () => {
                 </List>
               </Box>
             )}
-
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="h6" gutterBottom>Detalles de la Propiedad</Typography>
-              <Grid container spacing={1}>
-                <Grid item xs={6}>
-                  <Chip
-                    icon={<SquareFootIcon sx={{ color: PRIMARY_COLOR }} />}
-                    label={`${flat.areaSize}m²`}
-                    variant="outlined"
-                    sx={{ width: "100%", borderColor: PRIMARY_COLOR }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <Chip
-                    icon={<PersonIcon sx={{ color: PRIMARY_COLOR }} />}
-                    label={`${flat.maxGuests} huéspedes`}
-                    variant="outlined"
-                    sx={{ width: "100%", borderColor: PRIMARY_COLOR }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <Chip
-                    icon={<BedIcon sx={{ color: PRIMARY_COLOR }} />}
-                    label={`${flat.bedrooms} dormitorios`}
-                    variant="outlined"
-                    sx={{ width: "100%", borderColor: PRIMARY_COLOR }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <Chip
-                    icon={<BathtubIcon sx={{ color: PRIMARY_COLOR }} />}
-                    label={`${flat.bathrooms} baños`}
-                    variant="outlined"
-                    sx={{ width: "100%", borderColor: PRIMARY_COLOR }}
-                  />
-                </Grid>
-              </Grid>
-            </Box>
           </StyledPaper>
         </Grid>
+
         {/* Sección de Reseñas */}
         <Grid item xs={12}>
           <StyledPaper>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Typography variant="h5">Reseñas ({reviews.length})</Typography>
               <StyledButton 
-                variant="contained"
-                onClick={() => setOpenReviewDialog(true)}
-              >
+  variant="contained"
+  onClick={() => setOpenReviewDialog(true)}
+  startIcon={<StarIcon />}
+>
                 Escribir Reseña
               </StyledButton>
             </Box>
@@ -1055,204 +1196,154 @@ const DetailsFlatPage = () => {
                     }
                   }}
                 >
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
                     <Avatar 
                       src={review.author?.profileImage}
                       sx={{ width: 40, height: 40 }}
                     />
                     <Box sx={{ flex: 1 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="subtitle1" fontWeight="medium">
-                          {review.author?.firstName} {review.author?.lastName}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="subtitle1" fontWeight="medium">
+                            {review.author?.firstName} {review.author?.lastName}
+                          </Typography>
                           {review.author?._id === flatOwner?._id && (
-                            <Typography 
-                              component="span" 
-                              sx={{ 
-                                ml: 1,
-                                px: 1, 
-                                py: 0.5, 
+                            <Chip
+                              label="Propietario"
+                              size="small"
+                              sx={{
                                 bgcolor: `${PRIMARY_COLOR}20`,
                                 color: PRIMARY_COLOR,
-                                borderRadius: 1,
-                                fontSize: '0.75rem'
+                                fontWeight: 500
                               }}
-                            >
-                              Propietario
-                            </Typography>
+                            />
                           )}
-                        </Typography>
+                        </Box>
                         <Typography variant="caption" color="text.secondary">
                           {formatDate(review.atCreated)}
                         </Typography>
                       </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, my: 1 }}>
-                        <StyledRating value={review.rating?.overall || 0} precision={0.5} readOnly size="small" />
-                      </Box>
-                      <Typography variant="body1">
-                        {review.content}
-                      </Typography>
 
-                      {/* Aspectos calificados */}
-                      {review.rating?.aspects && (
-                        <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                          {Object.entries(review.rating.aspects).map(([aspect, value]) => (
-                            <Box key={aspect} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="caption" color="text.secondary">
-                                {aspect === 'cleanliness' ? 'Limpieza' :
-                                 aspect === 'communication' ? 'Comunicación' :
-                                 aspect === 'location' ? 'Ubicación' :
-                                 aspect === 'accuracy' ? 'Precisión' :
-                                 aspect === 'value' ? 'Valor' : aspect}:
-                              </Typography>
-                              <StyledRating value={value} readOnly size="small" />
-                            </Box>
-                          ))}
+                      <Box sx={{ mt: 1 }}>
+                        <StyledRating value={review.rating?.overall || 0} precision={0.5} readOnly size="small" />
+                        <Typography variant="body1" sx={{ mt: 1 }}>
+                          {review.content}
+                        </Typography>
+                      </Box>
+
+                      {/* Botón de respuesta - Solo visible para el propietario */}
+                      {currentUser?._id === flatOwner?._id && (
+                        <Box sx={{ mt: 2 }}>
+                          <Button
+                            startIcon={<ReplyIcon />}
+                            onClick={() => setReplyForms(prev => ({ ...prev, [review._id]: !prev[review._id] }))}
+                            sx={{ 
+                              color: PRIMARY_COLOR,
+                              '&:hover': {
+                                bgcolor: `${PRIMARY_COLOR}10`
+                              }
+                            }}
+                          >
+                            Responder
+                          </Button>
                         </Box>
                       )}
-                    </Box>
-                  </Box>
 
-                  {/* Sección de respuestas */}
-                  <Box sx={{ ml: 7 }}>
-                    {((currentUser?._id === flatOwner?._id && !review.parentMessage) ||
-                      (review.parentMessage && review.author?._id === flatOwner?._id && currentUser?._id === review.parentMessage.author?._id)) && (
-                      <Button
-                        startIcon={<ReplyIcon />}
-                        onClick={() => {
-                          const messageElement = document.getElementById(`reply-form-${review._id}`);
-                          if (messageElement) {
-                            messageElement.style.display = messageElement.style.display === 'none' ? 'block' : 'none';
-                          }
-                        }}
-                        sx={{ 
-                          color: PRIMARY_COLOR,
-                          '&:hover': {
-                            bgcolor: `${PRIMARY_COLOR}10`
-                          }
-                        }}
-                      >
-                        Responder
-                      </Button>
-                    )}
-
-                    {/* Formulario de respuesta */}
-                    <Box id={`reply-form-${review._id}`} sx={{ display: 'none', mt: 2 }}>
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={2}
-                        placeholder="Escribe tu respuesta..."
-                        onChange={(e) => {
-                          const replyContent = e.target.value;
-                          if (replyContent.trim()) {
-                            const messageElement = document.getElementById(`reply-button-${review._id}`);
-                            if (messageElement) {
-                              messageElement.disabled = false;
-                            }
-                          }
-                        }}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            '&.Mui-focused fieldset': {
-                              borderColor: PRIMARY_COLOR,
-                            }
-                          }
-                        }}
-                      />
-                      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, gap: 1 }}>
-                        <Button 
-                          onClick={() => {
-                            const messageElement = document.getElementById(`reply-form-${review._id}`);
-                            if (messageElement) {
-                              messageElement.style.display = 'none';
-                            }
-                          }}
-                          sx={{ color: 'text.secondary' }}
-                        >
-                          Cancelar
-                        </Button>
-                        <Button
-                          id={`reply-button-${review._id}`}
-                          variant="contained"
-                          onClick={(e) => {
-                            const form = document.getElementById(`reply-form-${review._id}`);
-                            const content = form?.querySelector('textarea')?.value;
-                            if (content) {
-                              handleReplySubmit(review._id, content);
-                              form.style.display = 'none';
-                            }
-                          }}
-                          disabled={true}
-                          sx={{
-                            bgcolor: PRIMARY_COLOR,
-                            '&:hover': {
-                              bgcolor: PRIMARY_HOVER
-                            }
-                          }}
-                        >
-                          Responder
-                        </Button>
-                      </Box>
-                    </Box>
-
-                    {/* Mostrar respuestas existentes */}
-                    {review.replies?.length > 0 && (
-                      <Box sx={{ mt: 2 }}>
-                        {review.replies.map((reply) => (
-                          <Box key={reply._id} sx={{ mb: 2 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                              <Avatar 
-                                src={reply.author?.profileImage}
-                                sx={{ width: 32, height: 32 }}
-                              />
-                              <Box sx={{ flex: 1 }}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      {/* Formulario de respuesta */}
+                      {replyForms[review._id] && (
+                        <Box sx={{ mt: 2 }}>
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={2}
+                            placeholder="Escribe tu respuesta..."
+                            value={replyContents[review._id] || ''}
+                            onChange={(e) => setReplyContents(prev => ({
+                              ...prev,
+                              [review._id]: e.target.value
+                            }))}
+                            sx={{
+                              '& .MuiOutlinedInput-root': {
+                                '&.Mui-focused fieldset': {
+                                  borderColor: PRIMARY_COLOR,
+                                }
+                              }
+                            }}
+                          />
+                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, gap: 1 }}>
+                            <Button 
+                              onClick={() => setReplyForms(prev => ({ ...prev, [review._id]: false }))}
+                              sx={{ color: 'text.secondary' }}
+                            >
+                              Cancelar
+                            </Button>
+                            <StyledButton
+                              variant="contained"
+                              onClick={() => handleReplySubmit(review._id)}
+                              disabled={!replyContents[review._id]?.trim()}
+                            >
+                              Responder
+                            </StyledButton>
+                          </Box>
+                        </Box>
+                      )}
+                      {/* Respuestas existentes */}
+                      {review.replies?.map((reply) => (
+                        <Box key={reply._id} sx={{ mt: 2, ml: 4, pl: 2, borderLeft: `2px solid ${PRIMARY_COLOR}20` }}>
+                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                            <Avatar 
+                              src={reply.author?.profileImage}
+                              sx={{ width: 32, height: 32 }}
+                            />
+                            <Box sx={{ flex: 1 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                   <Typography variant="subtitle2">
                                     {reply.author?.firstName} {reply.author?.lastName}
-                                    {reply.author?._id === flatOwner?._id && (
-                                      <Typography 
-                                        component="span" 
-                                        sx={{ 
-                                          ml: 1,
-                                          px: 1, 
-                                          py: 0.5, 
-                                          bgcolor: `${PRIMARY_COLOR}20`,
-                                          color: PRIMARY_COLOR,
-                                          borderRadius: 1,
-                                          fontSize: '0.75rem'
-                                        }}
-                                      >
-                                        Propietario
-                                      </Typography>
-                                    )}
                                   </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {formatDate(reply.atCreated)}
-                                  </Typography>
+                                  {reply.author?._id === flatOwner?._id && (
+                                    <Chip
+                                      label="Propietario"
+                                      size="small"
+                                      sx={{
+                                        bgcolor: `${PRIMARY_COLOR}20`,
+                                        color: PRIMARY_COLOR,
+                                        fontWeight: 500,
+                                        height: 20
+                                      }}
+                                    />
+                                  )}
                                 </Box>
-                                <Typography variant="body2" sx={{ mt: 0.5 }}>
-                                  {reply.content}
+                                <Typography variant="caption" color="text.secondary">
+                                  {formatDate(reply.atCreated)}
                                 </Typography>
                               </Box>
+                              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                {reply.content}
+                              </Typography>
                             </Box>
                           </Box>
-                        ))}
-                      </Box>
-                    )}
+                        </Box>
+                      ))}
+                    </Box>
                   </Box>
                 </Paper>
               ))
             )}
           </StyledPaper>
         </Grid>
+
         {/* Diálogo de Contacto */}
         <Dialog
           open={openContactDialog}
           onClose={() => setOpenContactDialog(false)}
           maxWidth="sm"
           fullWidth
+          aria-labelledby="contact-dialog-title"
         >
-          <DialogTitle sx={{ color: PRIMARY_COLOR }}>Comunícate con el dueño del flat</DialogTitle>
+          <DialogTitle id="contact-dialog-title" sx={{ color: PRIMARY_COLOR }}>
+            Comunícate con el dueño del flat
+          </DialogTitle>
           <DialogContent>
             <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
               <TextField
@@ -1260,6 +1351,7 @@ const DetailsFlatPage = () => {
                 fullWidth
                 value={contactForm.name}
                 onChange={(e) => setContactForm(prev => ({ ...prev, name: e.target.value }))}
+                autoFocus
               />
               <TextField
                 label="Cédula"
@@ -1288,13 +1380,12 @@ const DetailsFlatPage = () => {
             <Button onClick={() => setOpenContactDialog(false)}>
               Cancelar
             </Button>
-            <Button 
-              variant="contained" 
+            <StyledButton 
+              variant="contained"
               onClick={handleContactSubmit}
-              sx={{ backgroundColor: PRIMARY_COLOR }}
             >
               Enviar
-            </Button>
+            </StyledButton>
           </DialogActions>
         </Dialog>
 
@@ -1304,13 +1395,11 @@ const DetailsFlatPage = () => {
           onClose={() => setOpenReviewDialog(false)}
           maxWidth="sm"
           fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: '12px',
-            }
-          }}
+          aria-labelledby="review-dialog-title"
         >
-          <DialogTitle sx={{ color: PRIMARY_COLOR }}>Escribir una Reseña</DialogTitle>
+          <DialogTitle id="review-dialog-title" sx={{ color: PRIMARY_COLOR }}>
+            Escribir una Reseña
+          </DialogTitle>
           <DialogContent>
             <Box sx={{ pt: 2 }}>
               <Typography variant="subtitle1" gutterBottom>Calificación General</Typography>
@@ -1328,14 +1417,12 @@ const DetailsFlatPage = () => {
                 {Object.entries(newReview.rating.aspects).map(([aspect, value]) => (
                   <Grid item xs={12} key={aspect}>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                        {
-                          aspect === 'cleanliness' ? 'Limpieza' :
-                          aspect === 'communication' ? 'Comunicación' :
-                          aspect === 'location' ? 'Ubicación' :
-                          aspect === 'accuracy' ? 'Precisión' :
-                          aspect === 'value' ? 'Valor' : aspect
-                        }
+                      <Typography variant="body2">
+                        {aspect === 'cleanliness' ? 'Limpieza' :
+                         aspect === 'communication' ? 'Comunicación' :
+                         aspect === 'location' ? 'Ubicación' :
+                         aspect === 'accuracy' ? 'Precisión' :
+                         aspect === 'value' ? 'Valor' : aspect}
                       </Typography>
                       <StyledRating
                         value={value}
@@ -1357,6 +1444,7 @@ const DetailsFlatPage = () => {
               </Grid>
 
               <TextField
+                autoFocus
                 multiline
                 rows={4}
                 fullWidth
@@ -1377,13 +1465,10 @@ const DetailsFlatPage = () => {
             </Box>
           </DialogContent>
           <DialogActions>
-            <StyledButton 
-              variant="outlined"
-              onClick={() => setOpenReviewDialog(false)}
-            >
+            <Button onClick={() => setOpenReviewDialog(false)}>
               Cancelar
-            </StyledButton>
-            <StyledButton 
+            </Button>
+            <StyledButton
               variant="contained"
               onClick={handleSubmitReview}
               disabled={!newReview.content.trim() || !newReview.rating.overall}
@@ -1398,6 +1483,7 @@ const DetailsFlatPage = () => {
           open={snackbar.open}
           autoHideDuration={4000}
           onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
           <Alert 
             onClose={() => setSnackbar(prev => ({ ...prev, open: false }))} 
