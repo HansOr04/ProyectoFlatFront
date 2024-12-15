@@ -12,8 +12,12 @@ import MenuIcon from "@mui/icons-material/Menu";
 import axios from "axios";
 import FiltersSidebar from "../components/filters/FiltersSidebar.jsx";
 import PropertyCard from "../components/common/PropertyCard.jsx";
+import { useSearchParams } from 'react-router-dom';
 
 const AllFlats = () => {
+  // Estado para URL params
+  const [searchParams] = useSearchParams();
+
   // Estados básicos
   const [flats, setFlats] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +26,7 @@ const AllFlats = () => {
 
   // Estados de filtros
   const [searchTerm, setSearchTerm] = useState("");
-  const [cityFilter, setCityFilter] = useState("all");
+  const [cityFilter, setCityFilter] = useState(searchParams.get('city') || "all");
   const [priceSort, setPriceSort] = useState("none");
   const [priceRange, setPriceRange] = useState([0, 2000]);
   const [bedroomsFilter, setBedroomsFilter] = useState("all");
@@ -59,7 +63,7 @@ const AllFlats = () => {
   // Token de autenticación
   const token = localStorage.getItem("token");
 
-  // Función para obtener los departamentos
+  // Efecto para cargar los departamentos y establecer el filtro de ciudad desde URL
   useEffect(() => {
     const fetchFlats = async () => {
       try {
@@ -84,6 +88,12 @@ const AllFlats = () => {
           if (areas.length > 0) {
             setAreaRange([Math.min(...areas), Math.max(...areas)]);
           }
+
+          // Establecer el filtro de ciudad desde la URL si existe
+          const cityFromURL = searchParams.get('city');
+          if (cityFromURL) {
+            setCityFilter(cityFromURL);
+          }
         }
 
         setError(null);
@@ -98,7 +108,7 @@ const AllFlats = () => {
     };
 
     fetchFlats();
-  }, [token]);
+  }, [token, searchParams]);
 
   // Efecto para cargar favoritos
   useEffect(() => {
@@ -227,7 +237,6 @@ const AllFlats = () => {
 
   // Función para ver detalles
   const handleViewDetails = (id) => {
-    // Implementar navegación a la página de detalles
     window.location.href = `/flats/${id}`;
   };
 
@@ -269,6 +278,7 @@ const AllFlats = () => {
           flexDirection: { xs: "column", md: "row" },
         }}
       >
+        {/* Mobile menu button */}
         <IconButton
           sx={{ display: { md: "none" } }}
           onClick={() => setDrawerOpen(true)}
@@ -276,6 +286,7 @@ const AllFlats = () => {
           <MenuIcon />
         </IconButton>
 
+        {/* Mobile drawer */}
         <Drawer
           anchor="left"
           open={drawerOpen}
@@ -311,6 +322,7 @@ const AllFlats = () => {
           />
         </Drawer>
 
+        {/* Desktop sidebar */}
         <Box sx={{ display: { xs: "none", md: "block" } }}>
           <FiltersSidebar
             searchTerm={searchTerm}
@@ -341,6 +353,7 @@ const AllFlats = () => {
           />
         </Box>
 
+        {/* Main content */}
         <Box sx={{ flex: 1 }}>
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -363,8 +376,7 @@ const AllFlats = () => {
               {filteredAndSortedFlats.length === 0 && (
                 <Box sx={{ textAlign: "center", py: 4 }}>
                   <Typography variant="h6" color="text.secondary">
-                    No se encontraron departamentos que coincidan con tu
-                    búsqueda
+                    No se encontraron departamentos que coincidan con tu búsqueda
                   </Typography>
                 </Box>
               )}

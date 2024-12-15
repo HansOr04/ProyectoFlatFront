@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Box,
   Container,
@@ -108,6 +108,8 @@ const destinations = [
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const currentCity = searchParams.get('city');
 
   const handleSearch = (city = '') => {
     if (city) {
@@ -176,7 +178,7 @@ const HomePage = () => {
               1,480,086 rooms around the world are waiting for you!
             </Typography>
 
-            <SearchButton onClick={() => handleSearch()}>
+            <SearchButton onClick={() => handleSearch(currentCity)}>
               <StyledSearchIcon />
             </SearchButton>
           </Container>
