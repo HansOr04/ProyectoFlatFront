@@ -196,7 +196,10 @@ const UpdateFlat = () => {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState({
+    ...initialFormData,
+    images: [] // Inicializar el array de imágenes explícitamente
+  });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState('');
@@ -280,11 +283,12 @@ const UpdateFlat = () => {
             availability: {
               ...initialFormData.availability,
               ...flatData.availability
-            }
+            },
+            images: [] // Mantener el array de imágenes vacío inicialmente
           });
 
-          // Establecer las imágenes existentes
-          if (flatData.images && flatData.images.length > 0) {
+          // Establecer las imágenes existentes con validación
+          if (Array.isArray(flatData.images) && flatData.images.length > 0) {
             setExistingImages(flatData.images);
           }
         }
@@ -370,10 +374,13 @@ const UpdateFlat = () => {
 
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
-    const totalImages = existingImages.length + files.length - imagesToDelete.length;
     
-    if (totalImages > 5) {
-      setMessage("Máximo 5 imágenes permitidas");
+    // Calcular el número total de imágenes considerando existentes y a eliminar
+    const currentImages = existingImages.length - imagesToDelete.length;
+    const newTotal = currentImages + files.length;
+    
+    if (newTotal > 5) {
+      setMessage(`No se pueden agregar más imágenes. Límite: 5. Actualmente tienes ${currentImages} imágenes.`);
       return;
     }
 
@@ -385,10 +392,11 @@ const UpdateFlat = () => {
 
     setFormData(prev => ({
       ...prev,
-      images: [...prev.images, ...files]
+      images: [...(Array.isArray(prev.images) ? prev.images : []), ...files]
     }));
     
     setImagePreviews(prev => [...prev, ...previews]);
+    setMessage(''); // Limpiar mensaje de error si existe
   };
 
   const removeExistingImage = (imageId) => {
@@ -402,7 +410,7 @@ const UpdateFlat = () => {
     setImagePreviews(prev => prev.filter((_, i) => i !== index));
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      images: Array.isArray(prev.images) ? prev.images.filter((_, i) => i !== index) : []
     }));
   };
 
@@ -410,6 +418,7 @@ const UpdateFlat = () => {
     imagePreviews.forEach(preview => URL.revokeObjectURL(preview.url));
     navigate(-1);
   };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -498,15 +507,15 @@ const UpdateFlat = () => {
         advanceNotice: Number(formData.availability.advanceNotice) || 1
       }));
 
-      // Añadir imágenes nuevas
-      if (formData.images && formData.images.length > 0) {
+      // Añadir imágenes nuevas con validación
+      if (Array.isArray(formData.images) && formData.images.length > 0) {
         formData.images.forEach(file => {
           formDataToSend.append('images', file);
         });
       }
     
-      // Añadir IDs de imágenes a eliminar solo si existen
-      if (imagesToDelete && imagesToDelete.length > 0) {
+      // Añadir IDs de imágenes a eliminar con validación
+      if (Array.isArray(imagesToDelete) && imagesToDelete.length > 0) {
         formDataToSend.append('imagesToDelete', JSON.stringify(imagesToDelete));
       }
 
