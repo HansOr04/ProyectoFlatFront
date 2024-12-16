@@ -1165,173 +1165,259 @@ const DetailsFlatPage = () => {
         </Grid>
 
         {/* Sección de Reseñas */}
-        <Grid item xs={12}>
-          <StyledPaper>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h5">Reseñas ({reviews.length})</Typography>
-              <StyledButton 
-  variant="contained"
-  onClick={() => setOpenReviewDialog(true)}
-  startIcon={<StarIcon />}
->
-                Escribir Reseña
-              </StyledButton>
+<Grid item xs={12}>
+  <StyledPaper>
+    <Box sx={{ 
+      display: 'flex', 
+      flexDirection: { xs: 'column', sm: 'row' }, 
+      justifyContent: 'space-between', 
+      alignItems: { xs: 'stretch', sm: 'center' }, 
+      gap: { xs: 2, sm: 0 },
+      mb: 3 
+    }}>
+      <Typography variant="h5">Reseñas ({reviews.length})</Typography>
+      <StyledButton 
+        variant="contained"
+        onClick={() => setOpenReviewDialog(true)}
+        startIcon={<StarIcon />}
+        fullWidth={false}
+        sx={{ 
+          width: { xs: '100%', sm: 'auto' }
+        }}
+      >
+        Escribir Reseña
+      </StyledButton>
+    </Box>
+
+    {reviews.length === 0 ? (
+      <Typography variant="body1" color="text.secondary" textAlign="center">
+        Aún no hay reseñas. ¡Sé el primero en dejar una!
+      </Typography>
+    ) : (
+      reviews.map((review) => (
+        <Paper 
+          key={review._id}
+          elevation={3} 
+          sx={{ 
+            p: { xs: 2, sm: 3 }, 
+            mb: 2, 
+            borderRadius: 2,
+            '&:hover': {
+              boxShadow: '0 6px 16px rgba(0,0,0,0.1)',
+            }
+          }}
+        >
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: { xs: 'column', sm: 'row' }, 
+            alignItems: { xs: 'flex-start' }, 
+            gap: 2 
+          }}>
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 1,
+              width: { xs: '100%', sm: 'auto' }
+            }}>
+              <Avatar 
+                src={review.author?.profileImage}
+                sx={{ width: 40, height: 40 }}
+              />
+              {review.author?._id === flatOwner?._id && (
+                <Chip
+                  label="Propietario"
+                  size="small"
+                  sx={{
+                    bgcolor: `${PRIMARY_COLOR}20`,
+                    color: PRIMARY_COLOR,
+                    fontWeight: 500,
+                    display: { xs: 'none', sm: 'flex' }
+                  }}
+                />
+              )}
             </Box>
 
-            {reviews.length === 0 ? (
-              <Typography variant="body1" color="text.secondary" textAlign="center">
-                Aún no hay reseñas. ¡Sé el primero en dejar una!
-              </Typography>
-            ) : (
-              reviews.map((review) => (
-                <Paper 
-                  key={review._id}
-                  elevation={3} 
-                  sx={{ 
-                    p: 3, 
-                    mb: 2, 
-                    borderRadius: 2,
-                    '&:hover': {
-                      boxShadow: '0 6px 16px rgba(0,0,0,0.1)',
-                    }
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                    <Avatar 
-                      src={review.author?.profileImage}
-                      sx={{ width: 40, height: 40 }}
+            <Box sx={{ flex: 1, width: '100%' }}>
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' }, 
+                justifyContent: 'space-between', 
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                gap: { xs: 1, sm: 0 }
+              }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  alignItems: { xs: 'flex-start', sm: 'center' }, 
+                  gap: 1 
+                }}>
+                  <Typography variant="subtitle1" fontWeight="medium">
+                    {review.author?.firstName} {review.author?.lastName}
+                  </Typography>
+                  {review.author?._id === flatOwner?._id && (
+                    <Chip
+                      label="Propietario"
+                      size="small"
+                      sx={{
+                        bgcolor: `${PRIMARY_COLOR}20`,
+                        color: PRIMARY_COLOR,
+                        fontWeight: 500,
+                        display: { xs: 'flex', sm: 'none' }
+                      }}
                     />
-                    <Box sx={{ flex: 1 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="subtitle1" fontWeight="medium">
-                            {review.author?.firstName} {review.author?.lastName}
+                  )}
+                </Box>
+                <Typography variant="caption" color="text.secondary">
+                  {formatDate(review.atCreated)}
+                </Typography>
+              </Box>
+
+              <Box sx={{ mt: 1 }}>
+                <StyledRating value={review.rating?.overall || 0} precision={0.5} readOnly size="small" />
+                <Typography variant="body1" sx={{ mt: 1 }}>
+                  {review.content}
+                </Typography>
+              </Box>
+
+              {/* Botón de respuesta */}
+              {currentUser?._id === flatOwner?._id && (
+                <Box sx={{ mt: 2 }}>
+                  <Button
+                    startIcon={<ReplyIcon />}
+                    onClick={() => setReplyForms(prev => ({ ...prev, [review._id]: !prev[review._id] }))}
+                    sx={{ 
+                      color: PRIMARY_COLOR,
+                      width: { xs: '100%', sm: 'auto' },
+                      '&:hover': {
+                        bgcolor: `${PRIMARY_COLOR}10`
+                      }
+                    }}
+                  >
+                    Responder
+                  </Button>
+                </Box>
+              )}
+
+              {/* Formulario de respuesta */}
+              {replyForms[review._id] && (
+                <Box sx={{ mt: 2 }}>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={2}
+                    placeholder="Escribe tu respuesta..."
+                    value={replyContents[review._id] || ''}
+                    onChange={(e) => setReplyContents(prev => ({
+                      ...prev,
+                      [review._id]: e.target.value
+                    }))}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        '&.Mui-focused fieldset': {
+                          borderColor: PRIMARY_COLOR,
+                        }
+                      }
+                    }}
+                  />
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    justifyContent: 'flex-end', 
+                    mt: 1, 
+                    gap: 1 
+                  }}>
+                    <Button 
+                      onClick={() => setReplyForms(prev => ({ ...prev, [review._id]: false }))}
+                      sx={{ 
+                        color: 'text.secondary',
+                        width: { xs: '100%', sm: 'auto' }
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                    <StyledButton
+                      variant="contained"
+                      onClick={() => handleReplySubmit(review._id)}
+                      disabled={!replyContents[review._id]?.trim()}
+                      sx={{ 
+                        width: { xs: '100%', sm: 'auto' }
+                      }}
+                    >
+                      Responder
+                    </StyledButton>
+                  </Box>
+                </Box>
+              )}
+
+              {/* Respuestas existentes */}
+              {review.replies?.map((reply) => (
+                <Box key={reply._id} sx={{ 
+                  mt: 2, 
+                  ml: { xs: 0, sm: 4 }, 
+                  pl: 2,
+                  borderLeft: `2px solid ${PRIMARY_COLOR}20` 
+                }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: 'flex-start', 
+                    gap: 2 
+                  }}>
+                    <Avatar 
+                      src={reply.author?.profileImage}
+                      sx={{ 
+                        width: { xs: 24, sm: 32 }, 
+                        height: { xs: 24, sm: 32 }
+                      }}
+                    />
+                    <Box sx={{ flex: 1, width: '100%' }}>
+                      <Box sx={{ 
+                        display: 'flex', 
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        justifyContent: 'space-between', 
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        gap: { xs: 1, sm: 0 }
+                      }}>
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: 1,
+                          flexWrap: 'wrap'
+                        }}>
+                          <Typography variant="subtitle2">
+                            {reply.author?.firstName} {reply.author?.lastName}
                           </Typography>
-                          {review.author?._id === flatOwner?._id && (
+                          {reply.author?._id === flatOwner?._id && (
                             <Chip
                               label="Propietario"
                               size="small"
                               sx={{
                                 bgcolor: `${PRIMARY_COLOR}20`,
                                 color: PRIMARY_COLOR,
-                                fontWeight: 500
+                                fontWeight: 500,
+                                height: 20
                               }}
                             />
                           )}
                         </Box>
                         <Typography variant="caption" color="text.secondary">
-                          {formatDate(review.atCreated)}
+                          {formatDate(reply.atCreated)}
                         </Typography>
                       </Box>
-
-                      <Box sx={{ mt: 1 }}>
-                        <StyledRating value={review.rating?.overall || 0} precision={0.5} readOnly size="small" />
-                        <Typography variant="body1" sx={{ mt: 1 }}>
-                          {review.content}
-                        </Typography>
-                      </Box>
-
-                      {/* Botón de respuesta - Solo visible para el propietario */}
-                      {currentUser?._id === flatOwner?._id && (
-                        <Box sx={{ mt: 2 }}>
-                          <Button
-                            startIcon={<ReplyIcon />}
-                            onClick={() => setReplyForms(prev => ({ ...prev, [review._id]: !prev[review._id] }))}
-                            sx={{ 
-                              color: PRIMARY_COLOR,
-                              '&:hover': {
-                                bgcolor: `${PRIMARY_COLOR}10`
-                              }
-                            }}
-                          >
-                            Responder
-                          </Button>
-                        </Box>
-                      )}
-
-                      {/* Formulario de respuesta */}
-                      {replyForms[review._id] && (
-                        <Box sx={{ mt: 2 }}>
-                          <TextField
-                            fullWidth
-                            multiline
-                            rows={2}
-                            placeholder="Escribe tu respuesta..."
-                            value={replyContents[review._id] || ''}
-                            onChange={(e) => setReplyContents(prev => ({
-                              ...prev,
-                              [review._id]: e.target.value
-                            }))}
-                            sx={{
-                              '& .MuiOutlinedInput-root': {
-                                '&.Mui-focused fieldset': {
-                                  borderColor: PRIMARY_COLOR,
-                                }
-                              }
-                            }}
-                          />
-                          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, gap: 1 }}>
-                            <Button 
-                              onClick={() => setReplyForms(prev => ({ ...prev, [review._id]: false }))}
-                              sx={{ color: 'text.secondary' }}
-                            >
-                              Cancelar
-                            </Button>
-                            <StyledButton
-                              variant="contained"
-                              onClick={() => handleReplySubmit(review._id)}
-                              disabled={!replyContents[review._id]?.trim()}
-                            >
-                              Responder
-                            </StyledButton>
-                          </Box>
-                        </Box>
-                      )}
-                      {/* Respuestas existentes */}
-                      {review.replies?.map((reply) => (
-                        <Box key={reply._id} sx={{ mt: 2, ml: 4, pl: 2, borderLeft: `2px solid ${PRIMARY_COLOR}20` }}>
-                          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-                            <Avatar 
-                              src={reply.author?.profileImage}
-                              sx={{ width: 32, height: 32 }}
-                            />
-                            <Box sx={{ flex: 1 }}>
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Typography variant="subtitle2">
-                                    {reply.author?.firstName} {reply.author?.lastName}
-                                  </Typography>
-                                  {reply.author?._id === flatOwner?._id && (
-                                    <Chip
-                                      label="Propietario"
-                                      size="small"
-                                      sx={{
-                                        bgcolor: `${PRIMARY_COLOR}20`,
-                                        color: PRIMARY_COLOR,
-                                        fontWeight: 500,
-                                        height: 20
-                                      }}
-                                    />
-                                  )}
-                                </Box>
-                                <Typography variant="caption" color="text.secondary">
-                                  {formatDate(reply.atCreated)}
-                                </Typography>
-                              </Box>
-                              <Typography variant="body2" sx={{ mt: 0.5 }}>
-                                {reply.content}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </Box>
-                      ))}
+                      <Typography variant="body2" sx={{ mt: 0.5 }}>
+                        {reply.content}
+                      </Typography>
                     </Box>
                   </Box>
-                </Paper>
-              ))
-            )}
-          </StyledPaper>
-        </Grid>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Paper>
+      ))
+    )}
+  </StyledPaper>
+</Grid>
 
         {/* Diálogo de Contacto */}
         <Dialog
