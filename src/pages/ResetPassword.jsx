@@ -1,4 +1,3 @@
-// ResetPassword.jsx
 import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { TextField, Button, Container, Typography, Box, Alert } from "@mui/material";
@@ -50,7 +49,6 @@ const ResetPassword = () => {
     setError("");
     setIsLoading(true);
 
-    // Validaciones del lado del cliente
     if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden");
       setIsLoading(false);
@@ -64,7 +62,7 @@ const ResetPassword = () => {
     }
 
     try {
-      const response = await axios.post(`/api/auth/reset-password/${token}`, {
+      const response = await axios.post(`${import.meta.env.VITE_APP_API_URL}/api/auth/reset-password/${token}`, {
         password,
         confirmPassword
       });
@@ -73,13 +71,20 @@ const ResetPassword = () => {
         setSuccess(true);
         setPassword("");
         setConfirmPassword("");
-        // Redirigir al login después de 3 segundos
+        
         setTimeout(() => {
           navigate('/login');
-        }, 3000);
+        }, 2000);
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Error al restablecer la contraseña");
+      const errorMessage = err.response?.data?.message || "Error al restablecer la contraseña";
+      setError(errorMessage);
+      
+      if (err.response?.status === 400) {
+        setTimeout(() => {
+          navigate('/forgot-password');
+        }, 3000);
+      }
     } finally {
       setIsLoading(false);
     }
