@@ -196,7 +196,7 @@ const MyFlats = () => {
                 throw new Error('No se pudo obtener la información del usuario');
             }
     
-            const userId = userResponse.data.data._id;
+            const userId = userResponse.data.data.id || userResponse.data.data._id;
     
             const flatsResponse = await axios.get(`${import.meta.env.VITE_APP_API_URL}/flats`, {
                 headers: getAuthHeaders(),
@@ -207,7 +207,9 @@ const MyFlats = () => {
             });
     
             if (flatsResponse.data.success) {
-                const userFlats = flatsResponse.data.data.filter(flat => flat.owner._id === userId);
+                const userFlats = flatsResponse.data.data.filter(flat => 
+                    (flat.owner.id === userId || flat.owner._id === userId)
+                );
                 setApartments(userFlats);
             } else {
                 throw new Error('No se pudieron cargar los departamentos');
