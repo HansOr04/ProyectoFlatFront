@@ -952,10 +952,10 @@ const ProfileUpdate = () => {
         <InfoCard elevation={1}>
           <InfoIcon className="info-icon" />
           <Typography variant="h6" gutterBottom sx={{ color: '#0E3F33' }}>
-            ¿Por qué no aparece mi información aquí?
+          ¿Por qué no puedo actualizar mi correo electrónico?
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Ocultamos algunos datos de la cuenta para proteger tu identidad.
+          El correo electrónico esta atado a los departamentos, por lo cual, modificar esta información podría causar conflictos
           </Typography>
         </InfoCard>
 
@@ -965,8 +965,7 @@ const ProfileUpdate = () => {
             ¿Qué datos se pueden editar?
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Los datos personales y de contacto pueden editarse. Si usamos esta información
-            para verificar tu identidad, tendrás que volver a verificarla.
+          Los datos personales como nombre, apellido y fecha de nacimiento pueden editarse. La contraseña también se puede actualizar siempre y cuando se ingrese la contraseña actual.
           </Typography>
         </InfoCard>
       </Grid>
