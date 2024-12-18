@@ -360,7 +360,7 @@ const Register = ({ setError, navigate, setSuccessMessage }) => {
   const validate = () => {
     const newErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{6,}$/;
     const age = new Date().getFullYear() - new Date(formData.birthDate).getFullYear();
 
     if (!formData.firstName.trim()) {

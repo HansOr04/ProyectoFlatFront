@@ -115,122 +115,6 @@ const formatValue = (value, type) => {
   return String(value);
 };
 
-// Componente ProfileField
-const ProfileField = ({ 
-  icon: IconComponent, 
-  label, 
-  value, 
-  isEditing, 
-  onEdit, 
-  onSave, 
-  onCancel, 
-  type = 'text',
-  error,
-  disabled = false,
-  setEditStates
-}) => {
-  const handleEdit = () => {
-    setEditStates(prev => ({
-      ...prev,
-      [label.toLowerCase()]: true
-    }));
-  };
-
-  return (
-    <Box sx={{ 
-      mb: 3, 
-      p: 2, 
-      borderRadius: 2, 
-      bgcolor: isEditing ? 'rgba(31, 209, 215, 0.04)' : 'transparent',
-      transition: 'background-color 0.3s ease'
-    }}>
-      <Grid container alignItems="center" spacing={2}>
-        <Grid item>
-          <IconComponent sx={{ color: 'rgb(23, 165, 170)' }} />
-        </Grid>
-        <Grid item xs>
-          <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-            {label}
-          </Typography>
-          {isEditing ? (
-            <TextField
-              fullWidth
-              size="small"
-              type={type}
-              value={value || ''}
-              onChange={(e) => onEdit(e.target.value)}
-              error={!!error}
-              helperText={error}
-              variant="outlined"
-              disabled={disabled}
-              InputLabelProps={type === 'date' ? { shrink: true } : undefined}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  '&:hover fieldset': {
-                    borderColor: 'rgb(23, 165, 170)',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: 'rgb(23, 165, 170)',
-                  }
-                }
-              }}
-            />
-          ) : (
-            <Typography color="text.primary" sx={{ fontSize: '1rem' }}>
-              {formatValue(value, type)}
-            </Typography>
-          )}
-        </Grid>
-        <Grid item>
-          {!disabled && (
-            isEditing ? (
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <IconButton 
-                  size="small" 
-                  onClick={onSave} 
-                  sx={{ 
-                    color: 'rgb(23, 165, 170)',
-                    '&:hover': {
-                      backgroundColor: 'rgba(31, 209, 215, 0.1)'
-                    }
-                  }}
-                >
-                  <SaveIcon />
-                </IconButton>
-                <IconButton 
-                  size="small" 
-                  onClick={onCancel}
-                  sx={{
-                    color: 'error.main',
-                    '&:hover': {
-                      backgroundColor: 'error.light'
-                    }
-                  }}
-                >
-                  <CancelIcon />
-                </IconButton>
-              </Box>
-            ) : (
-              <IconButton 
-                size="small" 
-                onClick={handleEdit}
-                sx={{ 
-                  color: '#0E3F33',
-                  '&:hover': {
-                    backgroundColor: 'rgba(31, 209, 215, 0.1)'
-                  }
-                }}
-              >
-                <EditIcon />
-              </IconButton>
-            )
-          )}
-        </Grid>
-      </Grid>
-    </Box>
-  );
-};
-
 // Funciones de validación
 const validateName = (name) => {
   if (!name || name.trim().length < 2) {
@@ -289,6 +173,136 @@ const validateBirthDate = (birthDate) => {
 
   return null;
 };
+const ProfileField = ({ 
+  icon: IconComponent, 
+  label, 
+  value, 
+  isEditing, 
+  onEdit, 
+  onSave, 
+  onCancel, 
+  type = 'text',
+  error,
+  disabled = false,
+  setEditStates
+}) => {
+  const handleEdit = () => {
+    setEditStates(prev => ({
+      ...prev,
+      [label.toLowerCase()]: true
+    }));
+  };
+
+  const userInfo = JSON.parse(localStorage.getItem('user'));
+  const isAdmin = userInfo?.isAdmin;
+  const isEmailField = label.toLowerCase() === 'email';
+
+  // Si es campo de email y no es admin, no se puede editar
+  const canEdit = !disabled && (!isEmailField || isAdmin);
+
+  return (
+    <Box sx={{ 
+      mb: 3, 
+      p: 2, 
+      borderRadius: 2, 
+      bgcolor: isEditing ? 'rgba(31, 209, 215, 0.04)' : 'transparent',
+      transition: 'background-color 0.3s ease'
+    }}>
+      <Grid container alignItems="center" spacing={2}>
+        <Grid item>
+          <IconComponent sx={{ color: 'rgb(23, 165, 170)' }} />
+        </Grid>
+        <Grid item xs>
+          <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+            {label}
+          </Typography>
+          {isEditing ? (
+            <TextField
+              fullWidth
+              size="small"
+              type={type}
+              value={value || ''}
+              onChange={(e) => onEdit(e.target.value)}
+              error={!!error}
+              helperText={error}
+              variant="outlined"
+              disabled={!canEdit}
+              InputLabelProps={type === 'date' ? { shrink: true } : undefined}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  '&:hover fieldset': {
+                    borderColor: 'rgb(23, 165, 170)',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: 'rgb(23, 165, 170)',
+                  }
+                }
+              }}
+            />
+          ) : (
+            <Typography color="text.primary" sx={{ fontSize: '1rem' }}>
+              {formatValue(value, type)}
+            </Typography>
+          )}
+        </Grid>
+        <Grid item>
+          {canEdit && (
+            isEditing ? (
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <IconButton 
+                  size="small" 
+                  onClick={onSave} 
+                  sx={{ 
+                    color: 'rgb(23, 165, 170)',
+                    '&:hover': {
+                      backgroundColor: 'rgba(31, 209, 215, 0.1)'
+                    }
+                  }}
+                >
+                  <SaveIcon />
+                </IconButton>
+                <IconButton 
+                  size="small" 
+                  onClick={onCancel}
+                  sx={{
+                    color: 'error.main',
+                    '&:hover': {
+                      backgroundColor: 'error.light'
+                    }
+                  }}
+                >
+                  <CancelIcon />
+                </IconButton>
+              </Box>
+            ) : (
+              <IconButton 
+                size="small" 
+                onClick={handleEdit}
+                sx={{ 
+                  color: '#0E3F33',
+                  '&:hover': {
+                    backgroundColor: 'rgba(31, 209, 215, 0.1)'
+                  }
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+            )
+          )}
+        </Grid>
+      </Grid>
+      {isEmailField && !isAdmin && (
+        <Typography 
+          variant="caption" 
+          color="text.secondary"
+          sx={{ display: 'block', mt: 1 }}
+        >
+          Solo los administradores pueden modificar el correo electrónico
+        </Typography>
+      )}
+    </Box>
+  );
+};
 const ProfileUpdate = () => {
   const navigate = useNavigate();
   const params = useParams();
@@ -296,6 +310,7 @@ const ProfileUpdate = () => {
   const isOwnProfile = !params.id || params.id === loggedUserId;
   const targetUserId = params.id || loggedUserId;
 
+  // Estado del perfil
   const [profile, setProfile] = useState({
     firstName: '',
     lastName: '',
@@ -306,6 +321,7 @@ const ProfileUpdate = () => {
     isAdmin: false
   });
 
+  // Estados de edición para cada campo
   const [editStates, setEditStates] = useState({
     nombre: false,
     apellido: false,
@@ -313,6 +329,7 @@ const ProfileUpdate = () => {
     'fecha de nacimiento': false
   });
 
+  // Estado de errores
   const [errors, setErrors] = useState({
     firstName: '',
     lastName: '',
@@ -323,23 +340,27 @@ const ProfileUpdate = () => {
     confirmPassword: ''
   });
 
+  // Estados para controles de UI
   const [loading, setLoading] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [passwordDialog, setPasswordDialog] = useState(false);
   const [canEdit, setCanEdit] = useState(false);
   
+  // Estado para el manejo de contraseñas
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
 
+  // Estado para notificaciones
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
     severity: 'success'
   });
 
+  // Efecto para cargar el perfil inicial
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -351,7 +372,6 @@ const ProfileUpdate = () => {
     setCanEdit(isOwnProfile || userInfo?.isAdmin);
     fetchUserProfile();
   }, [navigate, isOwnProfile]);
-
   const fetchUserProfile = async () => {
     try {
       if (!targetUserId) {
@@ -388,6 +408,7 @@ const ProfileUpdate = () => {
         });
       }
     } catch (err) {
+      console.error('Error en fetchUserProfile:', err);
       if (err.response?.status === 401 || err.response?.status === 403) {
         navigate('/login');
         return;
@@ -401,9 +422,11 @@ const ProfileUpdate = () => {
       setLoading(false);
     }
   };
+
   const handleUpdate = async (field, value) => {
     try {
-      if (!targetUserId) {
+      const token = localStorage.getItem('token');
+      if (!token || !targetUserId) {
         setSnackbar({
           open: true,
           message: 'Error de autenticación',
@@ -411,65 +434,93 @@ const ProfileUpdate = () => {
         });
         return;
       }
-  
-      // Validar el campo antes de enviar
-      let validationError = null;
-      switch (field.toLowerCase()) {
-        case 'nombre':
-          validationError = validateName(value);
-          if (validationError) {
-            setErrors(prev => ({ ...prev, firstName: validationError }));
-            return;
-          }
-          break;
-        case 'apellido':
-          validationError = validateName(value);
-          if (validationError) {
-            setErrors(prev => ({ ...prev, lastName: validationError }));
-            return;
-          }
-          break;
-        case 'email':
-          validationError = validateEmail(value);
-          if (validationError) {
-            setErrors(prev => ({ ...prev, email: validationError }));
-            return;
-          }
-          break;
-        case 'fecha de nacimiento':
-          validationError = validateBirthDate(value);
-          if (validationError) {
-            setErrors(prev => ({ ...prev, birthDate: validationError }));
-            return;
-          }
-          break;
+
+      const userInfo = JSON.parse(localStorage.getItem('user'));
+      const isAdmin = userInfo?.isAdmin;
+      const isEmailUpdate = field.toLowerCase() === 'email';
+
+      // Debug info
+      console.log('Update attempt:', {
+        field,
+        value,
+        targetUserId,
+        isAdmin,
+        userInfo
+      });
+
+      if (isEmailUpdate && !isAdmin) {
+        setSnackbar({
+          open: true,
+          message: 'No tienes permisos para actualizar el email',
+          severity: 'error'
+        });
+        setEditStates(prev => ({ ...prev, email: false }));
+        return;
       }
-  
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      const updateData = {};
-      
+
       const fieldMapping = {
         'nombre': 'firstName',
         'apellido': 'lastName',
         'email': 'email',
         'fecha de nacimiento': 'birthDate'
       };
-  
-      const apiField = fieldMapping[field.toLowerCase()] || field;
-      updateData[apiField] = value;
-  
-      const response = await axios.put(
-        `${import.meta.env.VITE_APP_API_URL}/users/${targetUserId}`,
-        updateData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+
+      const apiField = fieldMapping[field.toLowerCase()];
+      if (!apiField) {
+        console.error('Campo no válido:', field);
+        throw new Error(`Campo no válido: ${field}`);
+      }
+
+      // Validación del valor
+      let validationError = null;
+      const trimmedValue = value.trim();
+
+      switch (apiField) {
+        case 'firstName':
+        case 'lastName':
+          validationError = validateName(trimmedValue);
+          break;
+        case 'email':
+          validationError = validateEmail(trimmedValue);
+          break;
+        case 'birthDate':
+          validationError = validateBirthDate(trimmedValue);
+          break;
+      }
+
+      if (validationError) {
+        setErrors(prev => ({ ...prev, [apiField]: validationError }));
+        return;
+      }
+
+      setLoading(true);
+
+      const updateData = {
+        [apiField]: trimmedValue
+      };
+
+      console.log('Enviando actualización:', {
+        endpoint: `${import.meta.env.VITE_APP_API_URL}/users/${targetUserId}`,
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        data: updateData
+      });
+
+      const response = await axios({
+        method: 'PUT',
+        url: `${import.meta.env.VITE_APP_API_URL}/users/${targetUserId}`,
+        data: updateData,
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      );
-  
+      });
+
+      console.log('Response:', response);
+
       if (response.data.success) {
         setProfile(prev => ({ ...prev, [apiField]: response.data.data[apiField] }));
         setEditStates(prev => ({ ...prev, [field.toLowerCase()]: false }));
@@ -480,28 +531,35 @@ const ProfileUpdate = () => {
           message: 'Perfil actualizado exitosamente',
           severity: 'success'
         });
+      } else {
+        throw new Error(response.data.message || 'Error al actualizar el perfil');
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.message || 'Error al actualizar el perfil';
+      console.error('Error completo:', err);
+      console.error('Response data:', err.response?.data);
+      
+      const errorMessage = 
+        err.response?.data?.message || 
+        err.response?.data?.error || 
+        err.message || 
+        'Error al actualizar el perfil';
+      
       setSnackbar({
         open: true,
         message: errorMessage,
         severity: 'error'
       });
-      if (err.response?.data?.errors) {
-        setErrors(prev => ({ ...prev, ...err.response.data.errors }));
-      }
+      
+      setEditStates(prev => ({ ...prev, [field.toLowerCase()]: false }));
     } finally {
       setLoading(false);
     }
-  };
-  
+};
   const handleImageUpload = async (event) => {
     try {
       const file = event.target.files[0];
       if (!file) return;
   
-      // Validar el tipo y tamaño del archivo
       const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
       if (!validTypes.includes(file.type)) {
         setSnackbar({
@@ -551,6 +609,7 @@ const ProfileUpdate = () => {
         });
       }
     } catch (error) {
+      console.error('Error en handleImageUpload:', error);
       setSnackbar({
         open: true,
         message: error.response?.data?.message || 'Error al actualizar la imagen',
@@ -560,7 +619,7 @@ const ProfileUpdate = () => {
       setLoading(false);
     }
   };
-  
+
   const handlePasswordChange = async () => {
     // Validar los campos de contraseña
     const passwordErrors = {
@@ -568,14 +627,26 @@ const ProfileUpdate = () => {
       newPassword: !passwordData.newPassword ? "La nueva contraseña es requerida" : "",
       confirmPassword: !passwordData.confirmPassword ? "Confirma la nueva contraseña" : ""
     };
-  
+
     if (passwordData.newPassword) {
-      if (passwordData.newPassword.length < 8) {
+      const minLength = 8;
+      const maxLength = 20;
+      const hasUpperCase = /[A-Z]/.test(passwordData.newPassword);
+      const hasLowerCase = /[a-z]/.test(passwordData.newPassword);
+      const hasNumbers = /\d/.test(passwordData.newPassword);
+      const hasSpecialChar = /[^a-zA-Z0-9]/.test(passwordData.newPassword);
+
+      if (passwordData.newPassword.length < minLength) {
         passwordErrors.newPassword = "La contraseña debe tener al menos 8 caracteres";
-      } else if (passwordData.newPassword.length > 20) {
+      } else if (passwordData.newPassword.length > maxLength) {
         passwordErrors.newPassword = "La contraseña no puede exceder los 20 caracteres";
-      } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/.test(passwordData.newPassword)) {
-        passwordErrors.newPassword = "La contraseña debe contener al menos una mayúscula, una minúscula, un número y un carácter especial";
+      } else if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+        let errorMsg = "La contraseña debe contener al menos:";
+        if (!hasUpperCase) errorMsg += " una mayúscula,";
+        if (!hasLowerCase) errorMsg += " una minúscula,";
+        if (!hasNumbers) errorMsg += " un número,";
+        if (!hasSpecialChar) errorMsg += " un carácter especial,";
+        passwordErrors.newPassword = errorMsg.slice(0, -1) + ".";
       }
     }
   
@@ -583,7 +654,6 @@ const ProfileUpdate = () => {
       passwordErrors.confirmPassword = "Las contraseñas no coinciden";
     }
   
-    // Verificar si hay errores
     const hasErrors = Object.values(passwordErrors).some(error => error !== "");
     if (hasErrors) {
       setErrors(prev => ({ ...prev, ...passwordErrors }));
@@ -608,17 +678,18 @@ const ProfileUpdate = () => {
   
       setPasswordDialog(false);
       setErrors({});
-      setSnackbar({
-        open: true,
-        message: 'Contraseña actualizada exitosamente',
-        severity: 'success'
-      });
       setPasswordData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: ''
       });
+      setSnackbar({
+        open: true,
+        message: 'Contraseña actualizada exitosamente',
+        severity: 'success'
+      });
     } catch (err) {
+      console.error('Error en handlePasswordChange:', err);
       setSnackbar({
         open: true,
         message: err.response?.data?.message || 'Error al cambiar la contraseña',
@@ -650,6 +721,7 @@ const ProfileUpdate = () => {
         });
       }
     } catch (err) {
+      console.error('Error en handleDeleteAccount:', err);
       setSnackbar({
         open: true,
         message: err.response?.data?.message || 'Error al eliminar la cuenta',
@@ -660,7 +732,7 @@ const ProfileUpdate = () => {
       setDeleteDialog(false);
     }
   };
-  
+
   // Loading state render
   if (loading && !profile.firstName) {
     return (
@@ -669,7 +741,7 @@ const ProfileUpdate = () => {
       </Box>
     );
   }
-  
+
   // Main component render
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -742,7 +814,6 @@ const ProfileUpdate = () => {
                   )}
                 </label>
               </Box>
-  
               <Typography 
                 variant="h5" 
                 gutterBottom 
@@ -754,8 +825,8 @@ const ProfileUpdate = () => {
               >
                 {`${profile.firstName} ${profile.lastName}`}
               </Typography>
-  
-              {/* Usuario y badges de administrador */}
+              
+              {/* Badges de usuario */}
               <Box sx={{ 
                 display: 'flex', 
                 gap: 2, 
@@ -763,7 +834,6 @@ const ProfileUpdate = () => {
                 flexWrap: 'wrap',
                 mb: 1
               }}>
-                {/* Contador de propiedades */}
                 <Box sx={{ 
                   display: 'inline-flex', 
                   alignItems: 'center', 
@@ -783,7 +853,6 @@ const ProfileUpdate = () => {
                   </Typography>
                 </Box>
   
-                {/* Badge de administrador */}
                 {profile.isAdmin && (
                   <Box sx={{ 
                     display: 'inline-flex', 
@@ -806,316 +875,317 @@ const ProfileUpdate = () => {
             </Box>
   
             <Divider sx={{ my: 3 }} />
+            
             {/* Campos del perfil */}
-          <ProfileField
-            icon={PersonIcon}
-            label="nombre"
-            value={profile.firstName}
-            isEditing={editStates.nombre}
-            onEdit={(value) => setProfile(prev => ({ ...prev, firstName: value }))}
-            onSave={() => handleUpdate('nombre', profile.firstName)}
-            onCancel={() => {
-              setEditStates(prev => ({ ...prev, nombre: false }));
-              setErrors(prev => ({ ...prev, firstName: '' }));
-            }}
-            error={errors.firstName}
-            setEditStates={setEditStates}
-            disabled={!canEdit}
-          />
+            <ProfileField
+              icon={PersonIcon}
+              label="nombre"
+              value={profile.firstName}
+              isEditing={editStates.nombre}
+              onEdit={(value) => setProfile(prev => ({ ...prev, firstName: value }))}
+              onSave={() => handleUpdate('nombre', profile.firstName)}
+              onCancel={() => {
+                setEditStates(prev => ({ ...prev, nombre: false }));
+                setErrors(prev => ({ ...prev, firstName: '' }));
+              }}
+              error={errors.firstName}
+              setEditStates={setEditStates}
+              disabled={!canEdit}
+            />
+  
+            <ProfileField
+              icon={PersonIcon}
+              label="apellido"
+              value={profile.lastName}
+              isEditing={editStates.apellido}
+              onEdit={(value) => setProfile(prev => ({ ...prev, lastName: value }))}
+              onSave={() => handleUpdate('apellido', profile.lastName)}
+              onCancel={() => {
+                setEditStates(prev => ({ ...prev, apellido: false }));
+                setErrors(prev => ({ ...prev, lastName: '' }));
+              }}
+              error={errors.lastName}
+              setEditStates={setEditStates}
+              disabled={!canEdit}
+            />
+  
+            <ProfileField
+              icon={EmailIcon}
+              label="email"
+              value={profile.email}
+              type="email"
+              isEditing={editStates.email}
+              onEdit={(value) => setProfile(prev => ({ ...prev, email: value }))}
+              onSave={() => handleUpdate('email', profile.email)}
+              onCancel={() => {
+                setEditStates(prev => ({ ...prev, email: false }));
+                setErrors(prev => ({ ...prev, email: '' }));
+              }}
+              error={errors.email}
+              setEditStates={setEditStates}
+              disabled={!canEdit}
+            />
+  
+            <ProfileField
+              icon={CakeIcon}
+              label="fecha de nacimiento"
+              value={profile.birthDate}
+              type="date"
+              isEditing={editStates['fecha de nacimiento']}
+              onEdit={(value) => setProfile(prev => ({ ...prev, birthDate: value }))}
+              onSave={() => handleUpdate('fecha de nacimiento', profile.birthDate)}
+              onCancel={() => {
+                setEditStates(prev => ({ ...prev, 'fecha de nacimiento': false }));
+                setErrors(prev => ({ ...prev, birthDate: '' }));
+              }}
+              error={errors.birthDate}
+              setEditStates={setEditStates}
+              disabled={!canEdit}
+            />
+  
+            {/* Botones de cambiar contraseña y eliminar cuenta */}
+            {canEdit && isOwnProfile && (
+              <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
+                <StyledButton
+                  startIcon={<KeyIcon />}
+                  onClick={() => setPasswordDialog(true)}
+                  variant="outlined"
+                  sx={{ 
+                    color: 'rgb(23, 165, 170)', 
+                    borderColor: 'rgb(23, 165, 170)',
+                    '&:hover': {
+                      borderColor: '#1FD1D7',
+                      backgroundColor: 'rgba(31, 209, 215, 0.1)'
+                    }
+                  }}
+                >
+                  Cambiar contraseña
+                </StyledButton>
+                
+                <StyledButton
+                  startIcon={<DeleteIcon />}
+                  onClick={() => setDeleteDialog(true)}
+                  variant="outlined"
+                  color="error"
+                >
+                  Eliminar cuenta
+                </StyledButton>
+              </Box>
+            )}
+          </StyledPaper>
 
-          <ProfileField
-            icon={PersonIcon}
-            label="apellido"
-            value={profile.lastName}
-            isEditing={editStates.apellido}
-            onEdit={(value) => setProfile(prev => ({ ...prev, lastName: value }))}
-            onSave={() => handleUpdate('apellido', profile.lastName)}
-            onCancel={() => {
-              setEditStates(prev => ({ ...prev, apellido: false }));
-              setErrors(prev => ({ ...prev, lastName: '' }));
-            }}
-            error={errors.lastName}
-            setEditStates={setEditStates}
-            disabled={!canEdit}
-          />
-
-          <ProfileField
-            icon={EmailIcon}
-            label="email"
-            value={profile.email}
-            type="email"
-            isEditing={editStates.email}
-            onEdit={(value) => setProfile(prev => ({ ...prev, email: value }))}
-            onSave={() => handleUpdate('email', profile.email)}
-            onCancel={() => {
-              setEditStates(prev => ({ ...prev, email: false }));
-              setErrors(prev => ({ ...prev, email: '' }));
-            }}
-            error={errors.email}
-            setEditStates={setEditStates}
-            disabled={!canEdit}
-          />
-
-          <ProfileField
-            icon={CakeIcon}
-            label="fecha de nacimiento"
-            value={profile.birthDate}
-            type="date"
-            isEditing={editStates['fecha de nacimiento']}
-            onEdit={(value) => setProfile(prev => ({ ...prev, birthDate: value }))}
-            onSave={() => handleUpdate('fecha de nacimiento', profile.birthDate)}
-            onCancel={() => {
-              setEditStates(prev => ({ ...prev, 'fecha de nacimiento': false }));
-              setErrors(prev => ({ ...prev, birthDate: '' }));
-            }}
-            error={errors.birthDate}
-            setEditStates={setEditStates}
-            disabled={!canEdit}
-          />
-
-          {canEdit && isOwnProfile && (
-            <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
-              <StyledButton
-                startIcon={<KeyIcon />}
-                onClick={() => setPasswordDialog(true)}
-                variant="outlined"
-                sx={{ 
-                  color: 'rgb(23, 165, 170)', 
-                  borderColor: 'rgb(23, 165, 170)',
-                  '&:hover': {
-                    borderColor: '#1FD1D7',
-                    backgroundColor: 'rgba(31, 209, 215, 0.1)'
-                  }
-                }}
-              >
-                Cambiar contraseña
-              </StyledButton>
-              
-              <StyledButton
-                startIcon={<DeleteIcon />}
-                onClick={() => setDeleteDialog(true)}
-                variant="outlined"
-                color="error"
-              >
-                Eliminar cuenta
-              </StyledButton>
+          {/* Lista de propiedades */}
+          {profile.flatsOwned?.length > 0 && (
+            <Box mt={4}>
+              <Typography variant="h6" gutterBottom sx={{ color: '#0E3F33' }}>
+                {isOwnProfile ? 'Mis Propiedades' : 'Propiedades'}
+              </Typography>
+              {profile.flatsOwned.map((flat) => (
+                <PropertyCard key={flat._id} elevation={0}>
+                  <Grid container spacing={2} alignItems="center">
+                    <Grid item>
+                      <HomeIcon sx={{ color: 'rgb(23, 165, 170)', fontSize: 40 }} />
+                    </Grid>
+                    <Grid item xs>
+                      <Typography variant="subtitle1" fontWeight="500" color="#0E3F33">
+                        {flat.title}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {flat.city}, {flat.streetName} {flat.streetNumber}
+                      </Typography>
+                    </Grid>
+                    <Grid item>
+                      <Button 
+                        variant="outlined" 
+                        size="small"
+                        onClick={() => navigate(`/flats/${flat._id}`)}
+                        sx={{ 
+                          color: 'rgb(23, 165, 170)', 
+                          borderColor: 'rgb(23, 165, 170)',
+                          '&:hover': {
+                            borderColor: '#1FD1D7',
+                            backgroundColor: 'rgba(31, 209, 215, 0.1)'
+                          }
+                        }}
+                      >
+                        Ver detalles
+                      </Button>
+                    </Grid>
+                  </Grid>
+                </PropertyCard>
+              ))}
             </Box>
           )}
-        </StyledPaper>
+        </Grid>
 
-        {/* Lista de propiedades */}
-        {profile.flatsOwned?.length > 0 && (
-          <Box mt={4}>
+        {/* Tarjetas de información */}
+        <Grid item xs={12} md={4}>
+          <InfoCard elevation={1}>
+            <InfoIcon className="info-icon" />
             <Typography variant="h6" gutterBottom sx={{ color: '#0E3F33' }}>
-              {isOwnProfile ? 'Mis Propiedades' : 'Propiedades'}
+              ¿Por qué no puedo actualizar mi correo electrónico?
             </Typography>
-            {profile.flatsOwned.map((flat) => (
-              <PropertyCard key={flat._id} elevation={0}>
-                <Grid container spacing={2} alignItems="center">
-                  <Grid item>
-                    <HomeIcon sx={{ color: 'rgb(23, 165, 170)', fontSize: 40 }} />
-                  </Grid>
-                  <Grid item xs>
-                    <Typography variant="subtitle1" fontWeight="500" color="#0E3F33">
-                      {flat.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {flat.city}, {flat.streetName} {flat.streetNumber}
-                    </Typography>
-                  </Grid>
-                  <Grid item>
-                    <Button 
-                      variant="outlined" 
-                      size="small"
-                      onClick={() => navigate(`/flats/${flat._id}`)}
-                      sx={{ 
-                        color: 'rgb(23, 165, 170)', 
-                        borderColor: 'rgb(23, 165, 170)',
-                        '&:hover': {
-                          borderColor: '#1FD1D7',
-                          backgroundColor: 'rgba(31, 209, 215, 0.1)'
-                        }
-                      }}
-                    >
-                      Ver detalles
-                    </Button>
-                  </Grid>
-                </Grid>
-              </PropertyCard>
-            ))}
-          </Box>
-        )}
+            <Typography variant="body2" color="text.secondary">
+              El correo electrónico esta atado a los departamentos, por lo cual, modificar esta información podría causar conflictos
+            </Typography>
+          </InfoCard>
+
+          <InfoCard elevation={1}>
+            <LockIcon className="info-icon" />
+            <Typography variant="h6" gutterBottom sx={{ color: '#0E3F33' }}>
+              ¿Qué datos se pueden editar?
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Los datos personales como nombre, apellido y fecha de nacimiento pueden editarse. La contraseña también se puede actualizar siempre y cuando se ingrese la contraseña actual.
+            </Typography>
+          </InfoCard>
+        </Grid>
       </Grid>
 
-      {/* Tarjetas de información */}
-      <Grid item xs={12} md={4}>
-        <InfoCard elevation={1}>
-          <InfoIcon className="info-icon" />
-          <Typography variant="h6" gutterBottom sx={{ color: '#0E3F33' }}>
-          ¿Por qué no puedo actualizar mi correo electrónico?
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-          El correo electrónico esta atado a los departamentos, por lo cual, modificar esta información podría causar conflictos
-          </Typography>
-        </InfoCard>
-
-        <InfoCard elevation={1}>
-          <LockIcon className="info-icon" />
-          <Typography variant="h6" gutterBottom sx={{ color: '#0E3F33' }}>
-            ¿Qué datos se pueden editar?
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-          Los datos personales como nombre, apellido y fecha de nacimiento pueden editarse. La contraseña también se puede actualizar siempre y cuando se ingrese la contraseña actual.
-          </Typography>
-        </InfoCard>
-      </Grid>
-    </Grid>
-
-    {/* Diálogos */}
-    {/* Diálogo de eliminación de cuenta */}
-    <Dialog 
-      open={deleteDialog} 
-      onClose={() => setDeleteDialog(false)}
-      PaperProps={{
-        sx: { borderRadius: 2 }
-      }}
-    >
-      <DialogTitle sx={{ color: '#0E3F33' }}>Eliminar cuenta</DialogTitle>
-      <DialogContent>
-        <Typography>
-          ¿Estás seguro de que quieres eliminar {isOwnProfile ? 'tu cuenta' : 'esta cuenta'}? 
-          Esta acción no se puede deshacer.
-          {isOwnProfile && ' Se eliminarán todas tus propiedades y datos asociados.'}
-        </Typography>
-      </DialogContent>
-      <DialogActions>
-        <Button 
-          onClick={() => setDeleteDialog(false)}
-          sx={{ color: '#0E3F33' }}
-        >
-          Cancelar
-        </Button>
-        <Button 
-          onClick={handleDeleteAccount} 
-          color="error" 
-          variant="contained"
-        >
-          Eliminar
-        </Button>
-      </DialogActions>
-    </Dialog>
-
-    {/* Diálogo de cambio de contraseña */}
-    <Dialog 
-      open={passwordDialog} 
-      onClose={() => setPasswordDialog(false)}
-      PaperProps={{
-        sx: { borderRadius: 2 }
-      }}
-    >
-      <DialogTitle sx={{ color: '#0E3F33' }}>Cambiar contraseña</DialogTitle>
-      <DialogContent>
-        <TextField
-          margin="dense"
-          label="Contraseña actual"
-          type="password"
-          fullWidth
-          value={passwordData.currentPassword}
-          onChange={(e) => setPasswordData(prev => ({
-            ...prev,
-            currentPassword: e.target.value
-          }))}
-          error={!!errors.currentPassword}
-          helperText={errors.currentPassword}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              '&.Mui-focused fieldset': {
-                borderColor: 'rgb(23, 165, 170)',
-              }
-            }
-          }}
-        />
-        <TextField
-          margin="dense"
-          label="Nueva contraseña"
-          type="password"
-          fullWidth
-          value={passwordData.newPassword}
-          onChange={(e) => setPasswordData(prev => ({
-            ...prev,
-            newPassword: e.target.value
-          }))}
-          error={!!errors.newPassword}
-          helperText={errors.newPassword}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              '&.Mui-focused fieldset': {
-                borderColor: 'rgb(23, 165, 170)',
-              }
-            }
-          }}
-        />
-        <TextField
-          margin="dense"
-          label="Confirmar nueva contraseña"
-          type="password"
-          fullWidth
-          value={passwordData.confirmPassword}
-          onChange={(e) => setPasswordData(prev => ({
-            ...prev,
-            confirmPassword: e.target.value
-          }))}
-          error={!!errors.confirmPassword}
-          helperText={errors.confirmPassword}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              '&.Mui-focused fieldset': {
-                borderColor: 'rgb(23, 165, 170)',
-              }
-            }
-          }}
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button 
-          onClick={() => setPasswordDialog(false)}
-          sx={{ color: '#0E3F33' }}
-        >
-          Cancelar
-        </Button>
-        <Button 
-          onClick={handlePasswordChange}
-          variant="contained"
-          sx={{ 
-            bgcolor: 'rgb(23, 165, 170)',
-            '&:hover': {
-              bgcolor: '#1FD1D7'
-            }
-          }}
-        >
-          Cambiar
-        </Button>
-      </DialogActions>
-    </Dialog>
-
-    {/* Snackbar para notificaciones */}
-    <Snackbar
-      open={snackbar.open}
-      autoHideDuration={6000}
-      onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-    >
-      <Alert 
-        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
-        severity={snackbar.severity}
-        variant="filled"
-        sx={{ width: '100%' }}
+      {/* Diálogos */}
+      <Dialog 
+        open={deleteDialog} 
+        onClose={() => setDeleteDialog(false)}
+        PaperProps={{
+          sx: { borderRadius: 2 }
+        }}
       >
-        {snackbar.message}
-      </Alert>
-    </Snackbar>
-  </Container>
-);
+        <DialogTitle sx={{ color: '#0E3F33' }}>Eliminar cuenta</DialogTitle>
+        <DialogContent>
+          <Typography>
+            ¿Estás seguro de que quieres eliminar {isOwnProfile ? 'tu cuenta' : 'esta cuenta'}? 
+            Esta acción no se puede deshacer.
+            {isOwnProfile && ' Se eliminarán todas tus propiedades y datos asociados.'}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setDeleteDialog(false)}
+            sx={{ color: '#0E3F33' }}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleDeleteAccount} 
+            color="error" 
+            variant="contained"
+          >
+            Eliminar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo de cambio de contraseña */}
+      <Dialog 
+        open={passwordDialog} 
+        onClose={() => setPasswordDialog(false)}
+        PaperProps={{
+          sx: { borderRadius: 2 }
+        }}
+      >
+        <DialogTitle sx={{ color: '#0E3F33' }}>Cambiar contraseña</DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            label="Contraseña actual"
+            type="password"
+            fullWidth
+            value={passwordData.currentPassword}
+            onChange={(e) => setPasswordData(prev => ({
+              ...prev,
+              currentPassword: e.target.value
+            }))}
+            error={!!errors.currentPassword}
+            helperText={errors.currentPassword}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                '&.Mui-focused fieldset': {
+                  borderColor: 'rgb(23, 165, 170)',
+                }
+              }
+            }}
+          />
+          <TextField
+            margin="dense"
+            label="Nueva contraseña"
+            type="password"
+            fullWidth
+            value={passwordData.newPassword}
+            onChange={(e) => setPasswordData(prev => ({
+              ...prev,
+              newPassword: e.target.value
+            }))}
+            error={!!errors.newPassword}
+            helperText={errors.newPassword}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                '&.Mui-focused fieldset': {
+                  borderColor: 'rgb(23, 165, 170)',
+                }
+              }
+            }}
+          />
+          <TextField
+            margin="dense"
+            label="Confirmar nueva contraseña"
+            type="password"
+            fullWidth
+            value={passwordData.confirmPassword}
+            onChange={(e) => setPasswordData(prev => ({
+              ...prev,
+              confirmPassword: e.target.value
+            }))}
+            error={!!errors.confirmPassword}
+            helperText={errors.confirmPassword}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                '&.Mui-focused fieldset': {
+                  borderColor: 'rgb(23, 165, 170)',
+                }
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={() => setPasswordDialog(false)}
+            sx={{ color: '#0E3F33' }}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handlePasswordChange}
+            variant="contained"
+            sx={{ 
+              bgcolor: 'rgb(23, 165, 170)',
+              '&:hover': {
+                bgcolor: '#1FD1D7'
+              }
+            }}
+          >
+            Cambiar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar para notificaciones */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </Container>
+  );
 };
 
 export default ProfileUpdate;
