@@ -701,33 +701,88 @@ const ProfileUpdate = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.delete(
-        `${import.meta.env.VITE_APP_API_URL}/users/${targetUserId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      
+      // Validar que exista el token
+      if (!token) {
+        throw new Error('No se encontró el token de autenticación');
+      }
+  
+      // Validar que exista el ID del usuario
+      if (!targetUserId) {
+        throw new Error('No se encontró el ID del usuario');
+      }
+  
+      console.log('Iniciando eliminación de cuenta:', {
+        userId: targetUserId,
+        isOwnProfile,
+        endpoint: `${import.meta.env.VITE_APP_API_URL}/users/${targetUserId}`
+      });
+  
+      // Realizar la petición de eliminación
+      const response = await axios({
+        method: 'DELETE',
+        url: `${import.meta.env.VITE_APP_API_URL}/users/${targetUserId}`,
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        // Agregar un timeout para evitar esperas indefinidas
+        timeout: 30000 // 30 segundos
+      });
+  
+      console.log('Respuesta del servidor:', response.data);
   
       if (response.data.success) {
+        // Si es el propio perfil, limpiar el almacenamiento local
         if (isOwnProfile) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
         }
-        navigate(isOwnProfile ? '/login' : '/admin');
+  
+        // Cerrar el diálogo antes de navegar
+        setDeleteDialog(false);
+  
+        // Mostrar notificación de éxito
         setSnackbar({
           open: true,
           message: 'Cuenta eliminada exitosamente',
           severity: 'success'
         });
+  
+        // Navegar después de un breve delay para permitir que se muestre la notificación
+        setTimeout(() => {
+          navigate(isOwnProfile ? '/login' : '/admin');
+        }, 1000);
+      } else {
+        throw new Error(response.data.message || 'Error al eliminar la cuenta');
       }
     } catch (err) {
-      console.error('Error en handleDeleteAccount:', err);
+      console.error('Error completo en handleDeleteAccount:', err);
+      
+      // Determinar el mensaje de error apropiado
+      let errorMessage = 'Error al eliminar la cuenta';
+      
+      if (err.response) {
+        // Error de respuesta del servidor
+        console.error('Datos de error del servidor:', err.response.data);
+        errorMessage = err.response.data.message || err.response.data.error || 'Error del servidor al eliminar la cuenta';
+      } else if (err.request) {
+        // Error de red
+        console.error('Error de red:', err.request);
+        errorMessage = 'Error de conexión. Por favor, verifica tu conexión a internet';
+      } else {
+        // Otros errores
+        console.error('Error:', err.message);
+        errorMessage = err.message || 'Error desconocido al eliminar la cuenta';
+      }
+  
       setSnackbar({
         open: true,
-        message: err.response?.data?.message || 'Error al eliminar la cuenta',
+        message: errorMessage,
         severity: 'error'
       });
     } finally {
+      // Asegurarse de que loading y el diálogo se cierren
       setLoading(false);
       setDeleteDialog(false);
     }
